@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: botxau-dashboard
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python dashboard.py
+    envVars:
+      - key: PORT
+        value: 5000
+    plan: free

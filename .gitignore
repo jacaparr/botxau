@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+
+# Environment
+.env
+*.env.local
+
+# Bot state files (generated at runtime)
+bot_state.json
+paper_trades.csv
+trades_log.csv
+
+# Backtest outputs
+backtest_xau_*.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

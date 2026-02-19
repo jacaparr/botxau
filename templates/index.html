@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🤖 Futuros Bot — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0e1a;
+      --card: #111827;
+      --card2: #1a2235;
+      --border: #1f2d45;
+      --accent: #3b82f6;
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .dot.active {
+      background: var(--green);
+    }
+
+    .dot.inactive {
+      background: var(--yellow);
+      animation: none;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.3;
+      }
+    }
+
+    /* Grid Layout */
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .card-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .card-value {
+      font-size: 1.9rem;
+      font-weight: 700;
+      font-family: var(--mono);
+      line-height: 1;
+    }
+
+    .card-sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .up {
+      color: var(--green);
+    }
+
+    .down {
+      color: var(--red);
+    }
+
+    .neutral {
+      color: var(--text);
+    }
+
+    /* Chart */
+    .chart-wrapper {
+      position: relative;
+      height: 240px;
+    }
+
+    /* Market Table */
+    .market-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .market-item {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .market-symbol {
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .market-price {
+      font-family: var(--mono);
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .market-funding {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      width: fit-content;
+    }
+
+    .funding-pos {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+    }
+
+    .funding-neg {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green);
+    }
+
+    .funding-neu {
+      background: rgba(100, 116, 139, 0.15);
+      color: var(--muted);
+    }
+
+    /* Trades Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    th {
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(31, 45, 69, 0.4);
+      font-family: var(--mono);
+    }
+
+    tr:hover td {
+      background: var(--card2);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .badge-long {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green);
+    }
+
+    .badge-short {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+    }
+
+    .badge-win {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--green);
+    }
+
+    .badge-loss {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--red);
+    }
+
+    /* Positions */
+    .positions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .pos-item {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pos-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .pos-symbol {
+      font-weight: 700;
+    }
+
+    .pos-entry {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .empty-state {
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* Update time */
+    .update-time {
+      text-align: right;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 16px;
+    }
+
+    .radar-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .radar-card {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 20px;
+    }
+
+    .radar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .radar-symbol {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .score-badges {
+      display: flex;
+      gap: 8px;
+    }
+
+    .score-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-family: var(--mono);
+    }
+
+    .score-long {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green);
+    }
+
+    .score-short {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+    }
+
+    .score-hot {
+      background: rgba(59, 130, 246, 0.25);
+      color: #60a5fa;
+      border: 1px solid #3b82f6;
+    }
+
+    .indicator-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .ind-label {
+      width: 56px;
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .ind-bar-bg {
+      flex: 1;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .ind-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.6s ease;
+    }
+
+    .bar-green {
+      background: linear-gradient(90deg, #059669, #10b981);
+    }
+
+    .bar-blue {
+      background: linear-gradient(90deg, #2563eb, #3b82f6);
+    }
+
+    .bar-yellow {
+      background: linear-gradient(90deg, #d97706, #f59e0b);
+    }
+
+    .bar-purple {
+      background: linear-gradient(90deg, #7c3aed, #8b5cf6);
+    }
+
+    .ind-value {
+      width: 52px;
+      text-align: right;
+      font-size: 0.72rem;
+      font-family: var(--mono);
+      color: var(--text);
+      flex-shrink: 0;
+    }
+
+    .ema-pill {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 999px;
+    }
+
+    .ema-bull {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green);
+    }
+
+    .ema-bear {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+    }
+
+    .ema-flat {
+      background: rgba(100, 116, 139, 0.15);
+      color: var(--muted);
+    }
+
+    .signal-alert {
+      margin-top: 10px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-align: center;
+      animation: glow 1.5s infinite alternate;
+    }
+
+    .signal-long {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--green);
+      border: 1px solid var(--green);
+    }
+
+    .signal-short {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+
+    @keyframes glow {
+      from {
+        box-shadow: 0 0 4px rgba(59, 130, 246, 0.2);
+      }
+
+      to {
+        box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .market-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .radar-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <h1>🤖 Futuros Bot Dashboard</h1>
+      <div style="color:var(--muted);font-size:0.8rem;margin-top:4px;">
+        EMA 9/20 · RSI 14 · ADX 14 · Funding Rate — Binance Futures
+        · Timeframe: <span id="hdr-timeframe" style="color:#60a5fa;font-weight:600;">...</span>
+        · Pares: <span id="hdr-symbols" style="color:#60a5fa;">...</span>
+      </div>
+    </div>
+    <div class="status-pill">
+      <div class="dot inactive" id="status-dot"></div>
+      <span id="status-text">Cargando...</span>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="grid-4">
+    <div class="card">
+      <div class="card-title">Balance Virtual</div>
+      <div class="card-value neutral" id="kpi-balance">—</div>
+      <div class="card-sub">USDT simulado</div>
+    </div>
+    <div class="card">
+      <div class="card-title">PnL Total</div>
+      <div class="card-value" id="kpi-pnl">—</div>
+      <div class="card-sub" id="kpi-pnl-pct">—</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Win Rate</div>
+      <div class="card-value" id="kpi-winrate">—</div>
+      <div class="card-sub" id="kpi-trades">— trades</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Posiciones Abiertas</div>
+      <div class="card-value neutral" id="kpi-positions">0</div>
+      <div class="card-sub">máx. {{ symbols|length }} pares</div>
+    </div>
+  </div>
+
+  <!-- EQUITY CHART + POSITIONS -->
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">Curva de Equity</div>
+      <div class="chart-wrapper">
+        <canvas id="equityChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Posiciones Abiertas</div>
+      <div class="positions-list" id="positions-list">
+        <div class="empty-state">Sin posiciones abiertas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARKET + TRADES -->
+  <div class="grid-2">
+    <!-- Market -->
+    <div class="card">
+      <div class="card-title">Mercado en tiempo real</div>
+      <div class="market-grid" id="market-grid">
+        {% for s in symbols %}
+        <div class="market-item" id="market-{{ s }}">
+          <div class="market-symbol">{{ s }}</div>
+          <div class="market-price">—</div>
+          <div class="market-funding funding-neu">FR: —%</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Trades recientes -->
+    <div class="card">
+      <div class="card-title">Últimas Operaciones</div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Par</th>
+              <th>Lado</th>
+              <th>Entrada</th>
+              <th>PnL</th>
+              <th>Resultado</th>
+            </tr>
+          </thead>
+          <tbody id="trades-body">
+            <tr>
+              <td colspan="5" class="empty-state">Sin trades aún</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIGNAL RADAR -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-title" style="margin-bottom:16px;">📡 Radar de Señales — Proximidad a la Estrategia</div>
+    <div class="radar-grid" id="radar-grid">
+      <div class="empty-state" style="grid-column:1/-1;">Cargando indicadores...</div>
+    </div>
+  </div>
+
+  <div class="update-time">Actualización cada 15s · <span id="last-update">—</span></div>
+
+  <!-- JAVASCRIPT -->
+  <script>
+    const fmt = (n, dec = 2) => Number(n).toLocaleString('es-ES', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    const fmtP = (n) => (n >= 0 ? '+' : '') + fmt(n);
+
+    // ── Equity Chart ──────────────────────────────────────────────────────────
+    const ctx = document.getElementById('equityChart').getContext('2d');
+    const equityChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Equity (USDT)',
+          data: [],
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59,130,246,0.08)',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#3b82f6',
+          fill: true,
+          tension: 0.4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false },
+          y: {
+            grid: { color: 'rgba(31,45,69,0.6)' },
+            ticks: { color: '#64748b', font: { family: "'JetBrains Mono'" } }
+          }
+        }
+      }
+    });
+
+    // ── Fetch Status ──────────────────────────────────────────────────────────
+    async function fetchStatus() {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+
+      // Status pill
+      const dot = document.getElementById('status-dot');
+      const txt = document.getElementById('status-text');
+      if (data.running) {
+        dot.className = 'dot active';
+        txt.textContent = 'Bot Activo';
+      } else {
+        dot.className = 'dot inactive';
+        txt.textContent = 'Paper Trading';
+      }
+
+      // KPIs
+      document.getElementById('kpi-balance').textContent = '$' + fmt(data.balance);
+      const pnlEl = document.getElementById('kpi-pnl');
+      const pctEl = document.getElementById('kpi-pnl-pct');
+      pnlEl.textContent = (data.pnl >= 0 ? '+' : '') + '$' + fmt(Math.abs(data.pnl));
+      pnlEl.className = 'card-value ' + (data.pnl >= 0 ? 'up' : 'down');
+      pctEl.textContent = fmtP(data.pnl_pct) + '%';
+      pctEl.style.color = data.pnl >= 0 ? 'var(--green)' : 'var(--red)';
+
+      const wrEl = document.getElementById('kpi-winrate');
+      wrEl.textContent = fmt(data.win_rate, 1) + '%';
+      wrEl.className = 'card-value ' + (data.win_rate >= 50 ? 'up' : 'down');
+      document.getElementById('kpi-trades').textContent =
+        `${data.total_trades} trades (${data.wins}W / ${data.losses}L)`;
+
+      // Posiciones
+      const posCount = Object.keys(data.open_positions).length;
+      document.getElementById('kpi-positions').textContent = posCount;
+      const posList = document.getElementById('positions-list');
+      if (posCount === 0) {
+        posList.innerHTML = '<div class="empty-state">Sin posiciones abiertas</div>';
+      } else {
+        posList.innerHTML = Object.entries(data.open_positions).map(([sym, pos]) => `
+      <div class="pos-item">
+        <div class="pos-left">
+          <div class="pos-symbol">${sym}</div>
+          <div class="pos-entry">Entrada: $${fmt(pos.entry_price, 4)}</div>
+        </div>
+        <div>
+          <div class="badge badge-${pos.side.toLowerCase()}">${pos.side}</div>
+          <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">SL: ${fmt(pos.stop_loss, 4)}</div>
+        </div>
+      </div>
+    `).join('');
+      }
+
+      document.getElementById('last-update').textContent =
+        new Date().toLocaleTimeString('es-ES');
+    }
+
+    // ── Fetch Trades ──────────────────────────────────────────────────────────
+    async function fetchTrades() {
+      const res = await fetch('/api/trades');
+      const trades = await res.json();
+      const tbody = document.getElementById('trades-body');
+      if (!trades.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Sin trades aún</td></tr>';
+        return;
+      }
+      tbody.innerHTML = trades.slice(0, 15).map(t => {
+        const pnl = parseFloat(t.pnl || 0);
+        return `
+      <tr>
+        <td>${t.symbol}</td>
+        <td><span class="badge badge-${t.side?.toLowerCase()}">${t.side}</span></td>
+        <td>${fmt(parseFloat(t.entry || 0), 4)}</td>
+        <td style="color:${pnl >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtP(pnl)}</td>
+        <td><span class="badge badge-${t.result?.toLowerCase()}">${t.result}</span></td>
+      </tr>`;
+      }).join('');
+    }
+
+    // ── Fetch Market ──────────────────────────────────────────────────────────
+    async function fetchMarket() {
+      const res = await fetch('/api/market');
+      const data = await res.json();
+      data.forEach(item => {
+        const el = document.getElementById('market-' + item.symbol);
+        if (!el) return;
+        el.querySelector('.market-price').textContent = '$' + fmt(item.price, 4);
+        const fr = item.funding_rate;
+        const frEl = el.querySelector('.market-funding');
+        const sign = fr >= 0 ? '+' : '';
+        frEl.textContent = `FR: ${sign}${fmt(fr, 4)}%`;
+        frEl.className = 'market-funding ' + (fr > 0.005 ? 'funding-pos' : fr < -0.005 ? 'funding-neg' : 'funding-neu');
+      });
+    }
+
+    // ── Fetch Equity ──────────────────────────────────────────────────────────
+    async function fetchEquity() {
+      const res = await fetch('/api/equity');
+      const data = await res.json();
+      equityChart.data.labels = data.map(d => d.time);
+      equityChart.data.datasets[0].data = data.map(d => d.equity);
+      equityChart.update();
+    }
+
+    // ── Fetch Config (timeframe, símbolos) ──────────────────────────────────
+    async function fetchConfig() {
+      const res = await fetch('/api/config');
+      const data = await res.json();
+      document.getElementById('hdr-timeframe').textContent = data.timeframe;
+      document.getElementById('hdr-symbols').textContent = data.symbols.join(', ');
+    }
+
+    // ── Fetch Signals Radar ───────────────────────────────────────────────────
+    async function fetchSignals() {
+      const res = await fetch('/api/signals');
+      const data = await res.json();
+      const grid = document.getElementById('radar-grid');
+
+      grid.innerHTML = data.map(s => {
+        if (s.error) return `<div class="radar-card"><div class="radar-symbol">${s.symbol}</div><div class="empty-state">Error: ${s.error}</div></div>`;
+
+        const emaClass = s.ema_status === 'bull' ? 'ema-bull' : s.ema_status === 'bear' ? 'ema-bear' : 'ema-flat';
+        const emaText = s.ema_status === 'bull' ? '📈 Alcista' : s.ema_status === 'bear' ? '📉 Bajista' : '➡️ Lateral';
+
+        const lScore = Math.min(100, s.long_score || 0);
+        const sScore = Math.min(100, s.short_score || 0);
+        const topScore = Math.max(lScore, sScore);
+        const topBadgeClass = topScore >= 75 ? 'score-hot' : '';
+
+        const rsiPct = Math.min(100, Math.max(0, (s.rsi - 30) / 40 * 100));
+        const adxPct = Math.min(100, (s.adx / (s.adx_min * 2)) * 100);
+        const volPct = Math.min(100, s.vol_ratio || 0);
+
+        const signalHtml = s.signal
+          ? `<div class="signal-alert signal-${s.signal.toLowerCase()}">
+           🚨 ¡SEÑAL ${s.signal} ACTIVA!
+         </div>`
+          : '';
+
+        return `
+    <div class="radar-card">
+      <div class="radar-header">
+        <div class="radar-symbol">${s.symbol}</div>
+        <div class="score-badges">
+          <div class="score-badge score-long ${lScore >= 75 ? 'score-hot' : ''}">L: ${lScore}%</div>
+          <div class="score-badge score-short ${sScore >= 75 ? 'score-hot' : ''}">S: ${sScore}%</div>
+        </div>
+      </div>
+
+      <div class="indicator-row">
+        <div class="ind-label">EMA</div>
+        <div style="flex:1;"><span class="ema-pill ${emaClass}">${emaText}</span></div>
+        <div class="ind-value" style="color:var(--muted);">cruce</div>
+      </div>
+
+      <div class="indicator-row">
+        <div class="ind-label">RSI</div>
+        <div class="ind-bar-bg">
+          <div class="ind-bar-fill bar-blue" style="width:${rsiPct}%"></div>
+        </div>
+        <div class="ind-value" style="color:${s.rsi > s.rsi_long_thr ? 'var(--green)' : s.rsi < s.rsi_short_thr ? 'var(--red)' : 'var(--text)'}">
+          ${s.rsi} <span style="color:var(--muted);font-size:0.65rem;">(${s.rsi_long_thr})</span>
+        </div>
+      </div>
+
+      <div class="indicator-row">
+        <div class="ind-label">ADX</div>
+        <div class="ind-bar-bg">
+          <div class="ind-bar-fill ${s.adx >= s.adx_min ? 'bar-green' : 'bar-yellow'}" style="width:${adxPct}%"></div>
+        </div>
+        <div class="ind-value" style="color:${s.adx >= s.adx_min ? 'var(--green)' : 'var(--yellow)'}">
+          ${s.adx} <span style="color:var(--muted);font-size:0.65rem;">(${s.adx_min})</span>
+        </div>
+      </div>
+
+      <div class="indicator-row">
+        <div class="ind-label">Volumen</div>
+        <div class="ind-bar-bg">
+          <div class="ind-bar-fill bar-purple" style="width:${volPct}%"></div>
+        </div>
+        <div class="ind-value" style="color:${s.vol_ratio >= 80 ? 'var(--green)' : 'var(--yellow)'}">
+          ${s.vol_ratio}%
+        </div>
+      </div>
+
+      <div class="indicator-row">
+        <div class="ind-label">FR</div>
+        <div style="flex:1;font-size:0.75rem;font-family:var(--mono);">
+          <span style="color:${s.funding_rate > 0.005 ? 'var(--red)' : s.funding_rate < -0.005 ? 'var(--green)' : 'var(--muted)'}">
+            ${s.funding_rate > 0 ? '+' : ''}${s.funding_rate}%
+          </span>
+        </div>
+        <div class="ind-value" style="color:var(--muted);font-size:0.65rem;">
+          ${s.funding_rate > 0.005 ? '→ Short' : s.funding_rate < -0.005 ? '→ Long' : 'neutro'}
+        </div>
+      </div>
+
+      ${signalHtml}
+    </div>`;
+      }).join('');
+    }
+
+    // ── Refresh Loop ──────────────────────────────────────────────────────────
+    async function refresh() {
+      await Promise.all([fetchStatus(), fetchTrades(), fetchMarket(), fetchEquity()]);
+    }
+    async function refreshSlow() {
+      await Promise.all([fetchSignals()]);
+    }
+
+    fetchConfig();
+    refresh();
+    refreshSlow();
+    setInterval(refresh, 15000);      // KPIs, trades, mercado cada 15s
+    setInterval(refreshSlow, 30000);  // Señales cada 30s (más pesado)
+  </script>
+
+</body>
+
+</html>

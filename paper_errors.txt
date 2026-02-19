@@ -1,0 +1,33 @@
+Traceback (most recent call last):
+  File "C:\Users\jach1\.gemini\antigravity\scratch\futures-bot\paper_trade.py", line 371, in <module>
+    run_paper_trading(
+    ~~~~~~~~~~~~~~~~~^
+        symbols=symbols,
+        ^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        check_seconds=args.interval_seconds,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\jach1\.gemini\antigravity\scratch\futures-bot\paper_trade.py", line 275, in run_paper_trading
+    logger.info("\U0001f916 PAPER TRADING INICIADO (API pública, sin auth)")
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\jach1\.gemini\antigravity\scratch\futures-bot\logger.py", line 30, in info
+    print(f"{Fore.CYAN}[{ts}] \u2139\ufe0f  {msg}{Style.RESET_ALL}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\jach1\AppData\Roaming\Python\Python313\site-packages\colorama\ansitowin32.py", line 47, in write
+    self.__convertor.write(text)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\jach1\AppData\Roaming\Python\Python313\site-packages\colorama\ansitowin32.py", line 177, in write
+    self.write_and_convert(text)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\jach1\AppData\Roaming\Python\Python313\site-packages\colorama\ansitowin32.py", line 202, in write_and_convert
+    self.write_plain_text(text, cursor, start)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\jach1\AppData\Roaming\Python\Python313\site-packages\colorama\ansitowin32.py", line 210, in write_plain_text
+    self.wrapped.write(text[start:end])
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 22-23: character maps to <undefined>

@@ -1,0 +1,12 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "python dashboard.py"
+healthcheckPath = "/"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+[[services]]
+name = "paper-trader"
+startCommand = "python paper_trade.py --capital 20000 --interval-seconds 60"

@@ -232,7 +232,7 @@ def api_config():
     return jsonify({
         "timeframe": config.TIMEFRAME,
         "symbols":   config.SYMBOLS,
-        "leverage":  config.LEVERAGE,
+        "leverage":  config.DEFAULT_CONFIG.get("leverage", 3),
     })
 
 

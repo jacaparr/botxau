@@ -39,13 +39,14 @@ SYMBOL_CONFIGS = {
         "tp_mult":     2.5,      # TP = rango × 2.5
         "sl_buffer":   0.001,    # Buffer SL
     },
-    "XAGUSD": {
-        "aliases":     ["XAGUSD", "SILVER", "XAGUSDm", "XAGUSD.a"],
-        "min_range":   0.15,     # Plata tiene rangos más pequeños
-        "max_range":   1.50,     # Rango máximo
-        "tp_mult":     2.5,
-        "sl_buffer":   0.001,
-    },
+    # ── PLATA: descomentar cuando pases el challenge ──
+    # "XAGUSD": {
+    #     "aliases":     ["XAGUSD", "SILVER", "XAGUSDm", "XAGUSD.a"],
+    #     "min_range":   0.15,
+    #     "max_range":   1.50,
+    #     "tp_mult":     2.5,
+    #     "sl_buffer":   0.001,
+    # },
 }
 
 # Parámetros comunes Asian Breakout

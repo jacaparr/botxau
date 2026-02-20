@@ -30,20 +30,29 @@ import logger
 # PARÁMETROS DE LA ESTRATEGIA (Asian Range Breakout)
 # ─────────────────────────────────────────────────────────────────────────────
 
-SYMBOL         = "XAUUSD"       # Par del oro en MT5 (puede variar según broker)
-SYMBOL_ALT     = "GOLD"         # Nombre alternativo en algunos brokers
+# Configuración por símbolo
+SYMBOL_CONFIGS = {
+    "XAUUSD": {
+        "aliases":     ["XAUUSD", "GOLD", "XAUUSDm", "XAUUSD.a", "GOLD.a"],
+        "min_range":   3.0,      # Rango mínimo USD
+        "max_range":   20.0,     # Rango máximo USD
+        "tp_mult":     2.5,      # TP = rango × 2.5
+        "sl_buffer":   0.001,    # Buffer SL
+    },
+    "XAGUSD": {
+        "aliases":     ["XAGUSD", "SILVER", "XAGUSDm", "XAGUSD.a"],
+        "min_range":   0.15,     # Plata tiene rangos más pequeños
+        "max_range":   1.50,     # Rango máximo
+        "tp_mult":     2.5,
+        "sl_buffer":   0.001,
+    },
+}
 
+# Parámetros comunes Asian Breakout
 ASIAN_START_H  = 0              # Inicio sesión asiática (UTC)
 ASIAN_END_H    = 6              # Fin sesión asiática (UTC)
 LONDON_START_H = 7              # Inicio ventana de entrada
 LONDON_END_H   = 10             # Fin ventana de entrada
-
-TP_MULTIPLIER  = 2.5            # Take Profit = rango × 2.5
-SL_BUFFER_PCT  = 0.001          # Buffer extra para SL
-
-# Filtros de calidad (v2)
-MIN_RANGE_USD  = 3.0            # Rango mínimo en USD (XAUUSD usa precio real, no ×100)
-MAX_RANGE_USD  = 20.0           # Rango máximo
 EMA_PERIOD     = 50             # EMA de tendencia (1H)
 SKIP_MONDAY    = True           # No operar lunes
 MAX_ENTRY_CANDLES = 4           # Máx velas para entrar en London
@@ -83,16 +92,18 @@ def connect_mt5() -> bool:
     return True
 
 
-def find_gold_symbol() -> str | None:
-    """Busca el símbolo del oro en MT5 (varía según broker)."""
-    for name in [SYMBOL, SYMBOL_ALT, "XAUUSDm", "XAUUSD.a", "GOLD.a"]:
+def find_symbol(base_name: str) -> str | None:
+    """Busca un símbolo en MT5 probando aliases."""
+    config = SYMBOL_CONFIGS.get(base_name, {})
+    aliases = config.get("aliases", [base_name])
+    for name in aliases:
         info = mt5.symbol_info(name)
         if info is not None:
             if not info.visible:
                 mt5.symbol_select(name, True)
-            logger.info(f"   Símbolo oro: {name} (spread: {info.spread} pts)")
+            logger.info(f"   {base_name}: {name} (spread: {info.spread} pts)")
             return name
-    logger.error("❌ No se encontró XAUUSD/GOLD en el broker")
+    logger.error(f"❌ No se encontró {base_name} en el broker")
     return None
 
 
@@ -132,12 +143,13 @@ class TradeSetup:
     range_size: float
 
 
-def check_asian_breakout(symbol: str) -> TradeSetup | None:
+def check_asian_breakout(symbol: str, base_name: str) -> TradeSetup | None:
     """
     Verifica si hay señal de Asian Breakout.
     Retorna el setup si hay señal, None si no.
     """
     now = datetime.now(timezone.utc)
+    config = SYMBOL_CONFIGS[base_name]
 
     # ── Filtro: No operar lunes
     if SKIP_MONDAY and now.weekday() == 0:
@@ -167,8 +179,8 @@ def check_asian_breakout(symbol: str) -> TradeSetup | None:
     lo = float(asian["low"].min())
     rng = hi - lo
 
-    # ── Filtros de rango
-    if rng < MIN_RANGE_USD or rng > MAX_RANGE_USD:
+    # ── Filtros de rango (por símbolo)
+    if rng < config["min_range"] or rng > config["max_range"]:
         return None
 
     # ── Filtro: Tendencia EMA50 (1H)
@@ -186,19 +198,20 @@ def check_asian_breakout(symbol: str) -> TradeSetup | None:
     if len(london) > MAX_ENTRY_CANDLES:
         return None
 
+    tp_mult = config["tp_mult"]
+    sl_buf = config["sl_buffer"]
+
     for _, candle in london.iterrows():
         close = float(candle["close"])
 
         if close > hi and close > ema50:
-            # ── LONG breakout
-            sl = lo - lo * SL_BUFFER_PCT
-            tp = close + rng * TP_MULTIPLIER
+            sl = lo - lo * sl_buf
+            tp = close + rng * tp_mult
             return TradeSetup("LONG", close, sl, tp, rng)
 
         elif close < lo and close < ema50:
-            # ── SHORT breakout
-            sl = hi + hi * SL_BUFFER_PCT
-            tp = close - rng * TP_MULTIPLIER
+            sl = hi + hi * sl_buf
+            tp = close - rng * tp_mult
             return TradeSetup("SHORT", close, sl, tp, rng)
 
     return None
@@ -419,18 +432,25 @@ def run_bot(risk_pct: float = DEFAULT_RISK_PCT, check_seconds: int = 60):
     if not connect_mt5():
         return
 
-    # 2. Buscar símbolo del oro
-    symbol = find_gold_symbol()
-    if not symbol:
+    # 2. Buscar símbolos
+    active_symbols = {}  # {base_name: mt5_symbol_name}
+    for base_name in SYMBOL_CONFIGS:
+        mt5_name = find_symbol(base_name)
+        if mt5_name:
+            active_symbols[base_name] = mt5_name
+
+    if not active_symbols:
+        logger.error("❌ No se encontró ningún símbolo")
         mt5.shutdown()
         return
 
-    last_range = 0  # Para gestión de trailing
+    last_ranges = {s: 0 for s in active_symbols}  # Para trailing
 
     print(f"\n{'═'*60}")
-    print(f"  🥇 BOT DE ORO (XAUUSD) — Asian Range Breakout v3")
+    print(f"  🥇🥈 BOT ORO + PLATA — Asian Range Breakout v3")
     print(f"{'═'*60}")
-    print(f"  Símbolo:      {symbol}")
+    for base, mt5_name in active_symbols.items():
+        print(f"  {base}: {mt5_name}")
     print(f"  Riesgo/trade: {risk_pct}%")
     print(f"  Estrategia:   Asian Breakout + BE + Trailing + EOD")
     print(f"  Ciclo:        cada {check_seconds}s")
@@ -444,25 +464,26 @@ def run_bot(risk_pct: float = DEFAULT_RISK_PCT, check_seconds: int = 60):
             info = mt5.account_info()
             if info:
                 ts = now.strftime("%H:%M:%S")
-                logger.info(f"── {ts} UTC | Balance: ${info.balance:,.2f} | Equity: ${info.equity:,.2f} ──")
+                logger.info(f"-- {ts} UTC | Balance: ${info.balance:,.2f} | Equity: ${info.equity:,.2f} --")
 
-            # ── Gestionar posiciones abiertas (BE, Trailing, EOD)
-            if last_range > 0:
-                manage_open_positions(symbol, last_range)
+            for base_name, mt5_symbol in active_symbols.items():
+                # Gestionar posiciones abiertas (BE, Trailing, EOD)
+                if last_ranges[base_name] > 0:
+                    manage_open_positions(mt5_symbol, last_ranges[base_name])
 
-            # ── Buscar nueva señal si no hay posición abierta
-            open_pos = check_open_positions(symbol)
-            if not open_pos:
-                setup = check_asian_breakout(symbol)
-                if setup:
-                    logger.info(f"🔔 ¡Señal detectada! {setup.signal} | Rango: {setup.range_size:.2f}")
-                    if open_trade(symbol, setup, risk_pct):
-                        last_range = setup.range_size
+                # Buscar nueva senal si no hay posicion abierta
+                open_pos = check_open_positions(mt5_symbol)
+                if not open_pos:
+                    setup = check_asian_breakout(mt5_symbol, base_name)
+                    if setup:
+                        logger.info(f"[{base_name}] Senal detectada! {setup.signal} | Rango: {setup.range_size:.2f}")
+                        if open_trade(mt5_symbol, setup, risk_pct):
+                            last_ranges[base_name] = setup.range_size
 
             time.sleep(check_seconds)
 
     except KeyboardInterrupt:
-        print("\n🛑 Bot detenido.")
+        print("\nBot detenido.")
         info = mt5.account_info()
         if info:
             print(f"   Balance final: ${info.balance:,.2f}")
@@ -483,4 +504,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run_bot(risk_pct=args.risk, check_seconds=args.interval)
-""".lstrip()
+

@@ -14,8 +14,13 @@ venv/
 *.env.local
 
 # Bot state files (generated at runtime)
-bot_state.json
-paper_trades.csv
+bot.log
+bot_state_mt5.json
+bot_state_mt5_v5.json
+debug_output.txt
+*.pyc
+__pycache__/
+trades.csv
 trades_log.csv
 
 # Backtest outputs

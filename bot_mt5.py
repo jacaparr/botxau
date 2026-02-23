@@ -73,11 +73,110 @@ DAILY_SUMMARY_HOUR     = 17
 
 def save_state(state: dict):
     state["last_update"] = datetime.now(timezone.utc).isoformat()
+    state["running"] = True
     try:
+        # Añadir Radar de Señales
+        state["radar"] = calculate_radar()
+
+        # Añadir info de cuenta si está conectado
+        acct = mt5.account_info()
+        if acct:
+            state["account"] = {
+                "balance": acct.balance,
+                "equity": acct.equity,
+                "profit": acct.profit,
+                "currency": acct.currency
+            }
+        
+        # Obtener posiciones reales
+        positions = mt5.positions_get()
+        state["live_positions"] = []
+        if positions:
+            for p in positions:
+                state["live_positions"].append({
+                    "symbol": p.symbol,
+                    "type": "BUY" if p.type == mt5.POSITION_TYPE_BUY else "SELL",
+                    "volume": p.volume,
+                    "price_open": p.price_open,
+                    "profit": p.profit
+                })
+
         with open(STATE_FILE, "w") as f:
             json.dump(state, f, indent=2, default=str)
     except Exception as e:
         logger.error(f"Error guardando estado: {e}")
+
+def calculate_radar() -> list:
+    """Calcula la proximidad de señales para el dashboard."""
+    radar_data = []
+    
+    # 1. XAUUSD (Asian Breakout)
+    try:
+        symbol = find_symbol("XAUUSD")
+        if symbol:
+            now = datetime.now(timezone.utc)
+            df_15m = get_candles(symbol, mt5.TIMEFRAME_M15, 100)
+            tick = mt5.symbol_info_tick(symbol)
+            if not df_15m.empty and tick:
+                today = now.date()
+                asian = df_15m[(df_15m.index.date == today) & (df_15m.index.hour >= ASIAN_START_H) & (df_15m.index.hour < ASIAN_END_H)]
+                
+                hi, lo = (float(asian["high"].max()), float(asian["low"].min())) if len(asian) >= 4 else (0, 0)
+                
+                # Proximidad a los bordes del rango (0-100)
+                long_score = 0
+                short_score = 0
+                if hi > 0 and LONDON_START_H <= now.hour < LONDON_END_H:
+                    # Si el precio está cerca del HI (Long)
+                    dist_hi = abs(tick.ask - hi)
+                    long_score = max(0, min(100, 100 - (dist_hi / (hi*0.001)) * 100)) if hi > 0 else 0
+                    # Si el precio está cerca del LO (Short)
+                    dist_lo = abs(tick.bid - lo)
+                    short_score = max(0, min(100, 100 - (dist_lo / (lo*0.001)) * 100)) if lo > 0 else 0
+
+                radar_data.append({
+                    "symbol": "XAUUSD",
+                    "label": "Oro (Asian Breakout)",
+                    "long_score": round(long_score, 1),
+                    "short_score": round(short_score, 1),
+                    "in_window": LONDON_START_H <= now.hour < LONDON_END_H,
+                    "details": f"Range: {hi:.2f} - {lo:.2f}" if hi > 0 else "Calculando rango..."
+                })
+    except: pass
+
+    # 2. EURUSD (Mean Reversion)
+    try:
+        symbol = find_symbol("EURUSD")
+        if symbol:
+            df = get_candles(symbol, mt5.TIMEFRAME_H1, 100)
+            if not df.empty:
+                df = strat_eur.calculate_indicators(df)
+                last = df.iloc[-1]
+                rsi = float(last['rsi'])
+                adx = float(last['adx'])
+                close = float(last['close'])
+                bb_l, bb_u = float(last['bb_lower']), float(last['bb_upper'])
+                
+                # Long: RSI < 30, Price < BB_Lower, ADX < 25
+                l_rsi_score = max(0, min(100, (35 - rsi) / 10 * 100))
+                l_bb_score = max(0, min(100, (bb_l * 1.001 - close) / (bb_l * 0.002) * 100))
+                l_score = (l_rsi_score * 0.5 + l_bb_score * 0.5) if adx < 25 else 0
+                
+                # Short: RSI > 70, Price > BB_Upper, ADX < 25
+                s_rsi_score = max(0, min(100, (rsi - 65) / 10 * 100))
+                s_bb_score = max(0, min(100, (close - bb_u * 0.999) / (bb_u * 0.002) * 100))
+                s_score = (s_rsi_score * 0.5 + s_bb_score * 0.5) if adx < 25 else 0
+
+                radar_data.append({
+                    "symbol": "EURUSD",
+                    "label": "EURUSD (Mean Reversion)",
+                    "long_score": round(l_score, 1),
+                    "short_score": round(s_score, 1),
+                    "details": f"RSI: {rsi:.1f} | ADX: {adx:.1f}"
+                })
+    except: pass
+
+    return radar_data
 
 def load_state() -> dict:
     if os.path.exists(STATE_FILE):
@@ -191,6 +290,28 @@ def get_signal_mean_reversion(symbol: str, base_name: str) -> TradeSetup | None:
 # EJECUCIÓN (Live vs Virtual)
 # ─────────────────────────────────────────────────────────────────────────────
 
+def calc_lot_size(symbol: str, sl_dist: float, risk_pct: float) -> float:
+    """Calcula el tamaño de lote basado en el riesgo y la distancia del SL."""
+    acct = mt5.account_info()
+    if not acct:
+        return 0.01
+    risk_amount = acct.balance * (risk_pct / 100)
+    sym_info = mt5.symbol_info(symbol)
+    if not sym_info or sl_dist <= 0:
+        return 0.01
+    # Valor por punto × volumen = profit por punto
+    tick_value = sym_info.trade_tick_value
+    tick_size = sym_info.trade_tick_size
+    if tick_value <= 0 or tick_size <= 0:
+        return 0.01
+    sl_ticks = sl_dist / tick_size
+    lot = risk_amount / (sl_ticks * tick_value)
+    # Redondear al step del lote y clamp
+    lot_step = sym_info.volume_step
+    lot = max(sym_info.volume_min, min(sym_info.volume_max, round(lot / lot_step) * lot_step))
+    return round(lot, 2)
+
+
 def execute_trade(symbol: str, base_name: str, setup: TradeSetup, risk_pct: float, state: dict):
     config = SYMBOL_CONFIGS[base_name]
     is_live = config.get("live", False)
@@ -199,9 +320,9 @@ def execute_trade(symbol: str, base_name: str, setup: TradeSetup, risk_pct: floa
     logger.info(f"[{label}] Señal {setup.signal} en {symbol} detectada")
 
     if is_live:
-        # Ejecución real en MT5 (código v4)
+        # Ejecución real en MT5
         sl_dist = abs(setup.entry - setup.sl)
-        lot = 0.01 # Simplificado para brevedad, calc_lot_size(symbol, sl_dist, risk_pct)
+        lot = calc_lot_size(symbol, sl_dist, risk_pct)
         
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
@@ -221,6 +342,10 @@ def execute_trade(symbol: str, base_name: str, setup: TradeSetup, risk_pct: floa
             state["trades_today"] += 1
             save_state(state)
             return True
+        else:
+            err_msg = f"Error enviando orden: {res.retcode if res else 'None'}" 
+            logger.error(err_msg)
+            tg.notify_error(err_msg)
     else:
         # VIRTUAL PAPER TRADING
         # Solo notificamos por Telegram y guardamos en estado virtual
@@ -243,13 +368,107 @@ def execute_trade(symbol: str, base_name: str, setup: TradeSetup, risk_pct: floa
     return False
 
 def manage_positions(state: dict):
-    # 1. Gestionar reales en MT5
-    for base_name, config in SYMBOL_CONFIGS.items():
-        if config.get("live"):
-            # Lógica de BE/Trailing (v4) simplificada aquí por espacio
-            pass
+    now = datetime.now(timezone.utc)
+    
+    # 1. Gestionar posiciones reales en MT5 (Break-Even + Trailing + EOD)
+    positions = mt5.positions_get()
+    if positions:
+        for pos in positions:
+            # Solo gestionar trades de nuestro bot (magic 123456)
+            if pos.magic != 123456:
+                continue
+            
+            symbol = pos.symbol
+            is_long = pos.type == mt5.POSITION_TYPE_BUY
+            entry = pos.price_open
+            current_sl = pos.sl
+            current_tp = pos.tp
+            tick = mt5.symbol_info_tick(symbol)
+            if not tick:
+                continue
+            
+            curr_price = tick.bid if is_long else tick.ask
+            sl_dist = abs(entry - current_sl) if current_sl > 0 else 0
+            
+            if sl_dist <= 0:
+                continue
+            
+            # ── Cierre EOD (16:00 UTC) ─────────────────────────────
+            if now.hour >= EOD_CLOSE_H:
+                close_request = {
+                    "action": mt5.TRADE_ACTION_DEAL,
+                    "symbol": symbol,
+                    "volume": pos.volume,
+                    "type": mt5.ORDER_TYPE_SELL if is_long else mt5.ORDER_TYPE_BUY,
+                    "position": pos.ticket,
+                    "price": curr_price,
+                    "magic": 123456,
+                    "comment": "EOD-CLOSE",
+                    "type_filling": mt5.ORDER_FILLING_IOC,
+                }
+                res = mt5.order_send(close_request)
+                if res and res.retcode == mt5.TRADE_RETCODE_DONE:
+                    pnl = pos.profit
+                    tg.notify_eod_close(symbol, pnl)
+                    logger.info(f"⏰ EOD cierre {symbol} | PnL: ${pnl:.2f}")
+                continue
+            
+            # ── Break-Even: mover SL a entrada cuando ganancia >= 1R ──
+            profit_dist = (curr_price - entry) if is_long else (entry - curr_price)
+            be_triggered = profit_dist >= (sl_dist * BE_TRIGGER_R)
+            sl_at_be = abs(current_sl - entry) < (sl_dist * 0.1)  # ya está en BE
+            
+            if be_triggered and not sl_at_be:
+                new_sl = entry + (0.5 if is_long else -0.5)  # Pequeño buffer
+                modify_request = {
+                    "action": mt5.TRADE_ACTION_SLTP,
+                    "symbol": symbol,
+                    "position": pos.ticket,
+                    "sl": round(new_sl, 2),
+                    "tp": current_tp,
+                    "magic": 123456,
+                }
+                res = mt5.order_send(modify_request)
+                if res and res.retcode == mt5.TRADE_RETCODE_DONE:
+                    tg.notify_break_even(symbol, new_sl)
+                    logger.info(f"🛡️ BE activado {symbol} | SL → {new_sl:.2f}")
+                continue
+            
+            # ── Trailing Stop: perseguir precio a 0.5× rango ──────
+            if sl_at_be or (current_sl > entry if is_long else current_sl < entry):
+                trail_dist = sl_dist * TRAIL_DISTANCE_MULT
+                if is_long:
+                    new_trail_sl = curr_price - trail_dist
+                    if new_trail_sl > current_sl:
+                        modify_request = {
+                            "action": mt5.TRADE_ACTION_SLTP,
+                            "symbol": symbol,
+                            "position": pos.ticket,
+                            "sl": round(new_trail_sl, 2),
+                            "tp": current_tp,
+                            "magic": 123456,
+                        }
+                        res = mt5.order_send(modify_request)
+                        if res and res.retcode == mt5.TRADE_RETCODE_DONE:
+                            tg.notify_trailing_stop(symbol, new_trail_sl)
+                            logger.info(f"📈 Trailing {symbol} | SL → {new_trail_sl:.2f}")
+                else:
+                    new_trail_sl = curr_price + trail_dist
+                    if new_trail_sl < current_sl:
+                        modify_request = {
+                            "action": mt5.TRADE_ACTION_SLTP,
+                            "symbol": symbol,
+                            "position": pos.ticket,
+                            "sl": round(new_trail_sl, 2),
+                            "tp": current_tp,
+                            "magic": 123456,
+                        }
+                        res = mt5.order_send(modify_request)
+                        if res and res.retcode == mt5.TRADE_RETCODE_DONE:
+                            tg.notify_trailing_stop(symbol, new_trail_sl)
+                            logger.info(f"📈 Trailing {symbol} | SL → {new_trail_sl:.2f}")
 
-    # 2. Gestionar Virtuales
+    # 2. Gestionar posiciones virtuales (Paper Trading)
     if "virtual_positions" not in state: state["virtual_positions"] = []
     active_virtual = []
     
@@ -266,7 +485,7 @@ def manage_positions(state: dict):
         
         if hit_tp or hit_sl:
             res = "WIN ✅" if hit_tp else "LOSS ❌"
-            pnl = 1.0 if hit_tp else -1.0 # Una unidad de riesgo
+            pnl = 1.0 if hit_tp else -1.0
             tg._send_message(f"🧪 <b>TEST CERRADO</b>\n{symbol}\nResultado: {res}\nPrecio: {curr:.5f}")
             logger.info(f"🧪 [VIRTUAL] {symbol} cerrado: {res}")
             state["virtual_pnl_today"] += pnl
@@ -312,6 +531,7 @@ def run_bot():
                 if setup:
                     execute_trade(symbol, base_name, setup, 1.5, state)
         
+        save_state(state) # Actualizar estado para el dashboard
         time.sleep(60)
 
 def find_symbol(base_name: str) -> str | None:

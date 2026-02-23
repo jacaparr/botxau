@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 MT5 Bot v5 — Control Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #030712;
+            --card: rgba(17, 24, 39, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --accent: #3b82f6;
+            --green: #10b981;
+            --red: #f43f5e;
+            --text: #f3f4f6;
+            --muted: #9ca3af;
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            background-image: radial-gradient(circle at 50% -20%, #1e293b 0%, var(--bg) 80%);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Glassmorphism Header */
+        .glass-header {
+            background: var(--card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 30px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+        }
+
+        .title-group h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .title-group p {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .control-panel {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 14px;
+            padding: 12px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+
+        .btn-start {
+            background: var(--green);
+            color: white;
+        }
+
+        .btn-start:hover {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-stop {
+            background: var(--red);
+            color: white;
+            opacity: 0.8;
+        }
+
+        .btn-stop:hover {
+            opacity: 1;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* KPI Cards */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .card-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono';
+        }
+
+        .card-pnl {
+            font-size: 1rem;
+            margin-top: 5px;
+            font-weight: 600;
+        }
+
+        /* Strategy Split */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .strat-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .strat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+
+        .gold-border::before {
+            background: #facc15;
+        }
+
+        .euro-border::before {
+            background: #60a5fa;
+        }
+
+        .strat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .strat-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .badge-live {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--green);
+        }
+
+        .badge-test {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .metric-label {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .metric-value {
+            font-family: 'JetBrains Mono';
+            font-weight: 600;
+        }
+
+        /* Status Indicator */
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .dot-running {
+            background: var(--green);
+            box-shadow: 0 0 10px var(--green);
+            animation: pulse 2s infinite;
+        }
+
+        .dot-stopped {
+            background: #6b7280;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="glass-header">
+            <div class="title-group">
+                <h1>MT5 Bot Center <span id="bot-status-txt">...</span></h1>
+                <p>Monitoreo Dual: XAUUSD + EURUSD (v5)</p>
+            </div>
+            <div class="control-panel">
+                <button id="btn-start" class="btn btn-start" onclick="controlBot('start')">▶ INICIAR BOT</button>
+                <button id="btn-stop" class="btn btn-stop" onclick="controlBot('stop')">⏹ DETENER</button>
+            </div>
+        </header>
+
+        <!-- Auto-Pilot Schedule Card -->
+        <div class="card" style="margin-bottom:20px; border: 1px solid rgba(59,130,246,0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <div>
+                    <div class="card-label">⏰ Piloto Automático</div>
+                    <div style="font-size:0.85rem; color:var(--muted); margin-top:4px;">
+                        El bot se activa solo en horario de trading
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <span id="auto-status-label"
+                        style="font-size:0.8rem; color:var(--green); font-weight:600;">ON</span>
+                    <label style="position:relative; display:inline-block; width:52px; height:28px; cursor:pointer;">
+                        <input type="checkbox" id="auto-toggle" checked onchange="toggleAuto(this.checked)"
+                            style="opacity:0; width:0; height:0;">
+                        <span
+                            style="position:absolute; top:0; left:0; right:0; bottom:0; background:var(--green); border-radius:28px; transition:0.3s;"
+                            id="auto-slider"></span>
+                        <span
+                            style="position:absolute; top:3px; left:3px; width:22px; height:22px; background:white; border-radius:50%; transition:0.3s;"
+                            id="auto-knob"></span>
+                    </label>
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px;">
+                <div>
+                    <div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;">
+                        Hora UTC</div>
+                    <div style="font-family:'JetBrains Mono'; font-size:1.3rem; font-weight:700; margin-top:4px;"
+                        id="sched-utc">--:--</div>
+                </div>
+                <div>
+                    <div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;">
+                        Horario</div>
+                    <div style="font-family:'JetBrains Mono'; font-size:1rem; font-weight:600; margin-top:6px;"
+                        id="sched-hours">--</div>
+                </div>
+                <div>
+                    <div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;">
+                        Ventana de Entrada</div>
+                    <div style="font-family:'JetBrains Mono'; font-size:1rem; font-weight:600; margin-top:6px; color:#facc15;"
+                        id="sched-entry">07:00-10:00</div>
+                </div>
+                <div>
+                    <div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;"
+                        id="sched-next-label">Próxima Sesión</div>
+                    <div style="font-family:'JetBrains Mono'; font-size:1rem; font-weight:600; margin-top:6px; color:var(--accent);"
+                        id="sched-next">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPIs Real-time -->
+        <div class="grid-3">
+            <div class="card">
+                <div class="card-label">Balance Cuenta (MT5)</div>
+                <div class="card-value" id="val-balance">$0.00</div>
+                <div class="card-pnl" id="val-pnl-live">Profit: $0.00</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Trades Hoy (Live)</div>
+                <div class="card-value" id="val-trades-live">0</div>
+                <div class="card-pnl">Estrategia: Asian Breakout</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Resultado Test (EURUSD)</div>
+                <div class="card-value" id="val-pnl-test">0.0R</div>
+                <div class="card-pnl" id="val-trades-test">Trades: 0</div>
+            </div>
+        </div>
+
+        <!-- Active Strategies -->
+        <div class="grid-2">
+            <div class="card strat-card gold-border">
+                <div class="strat-header">
+                    <span class="strat-name">XAUUSD (Oro)</span>
+                    <span class="badge badge-live">LIVE</span>
+                </div>
+                <div class="metric-row"><span class="metric-label">Estado</span><span class="metric-value"
+                        id="gold-status">Vigilando...</span></div>
+                <div class="metric-row"><span class="metric-label">Trades Hoy</span><span class="metric-value"
+                        id="gold-count">0</span></div>
+                <div class="metric-row"><span class="metric-label">Pos. Abierta</span><span class="metric-value"
+                        id="gold-pos">Ninguna</span></div>
+            </div>
+
+            <div class="card strat-card euro-border">
+                <div class="strat-header">
+                    <span class="strat-name">EURUSD</span>
+                    <span class="badge badge-test">PAPER TRADE</span>
+                </div>
+                <div class="metric-row"><span class="metric-label">Estado</span><span class="metric-value">Mean
+                        Reversion H1</span></div>
+                <div class="metric-row"><span class="metric-label">PnL acumulado</span><span class="metric-value"
+                        id="euro-pnl">0.0R</span></div>
+                <div class="metric-row"><span class="metric-label">Pos. Abierta</span><span class="metric-value"
+                        id="euro-pos">Ninguna</span></div>
+            </div>
+        </div>
+
+        <!-- Radar de Señales -->
+        <div class="card" style="margin-top:20px;">
+            <div class="card-label">📡 Radar de Señales (Proximidad)</div>
+            <div id="radar-container" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:15px;">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </div>
+
+        <p style="text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 40px;">
+            Última actualización: <span id="last-update">...</span>
+        </p>
+    </div>
+
+    <script>
+        async function updateStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+
+                // Bot Buttons
+                const btnStart = document.getElementById('btn-start');
+                const btnStop = document.getElementById('btn-stop');
+                const statusTxt = document.getElementById('bot-status-txt');
+
+                if (data.is_running) {
+                    btnStart.disabled = true;
+                    btnStop.disabled = false;
+                    statusTxt.innerHTML = '<span class="status-dot dot-running"></span><span style="color:var(--green)">ACTIVO</span>';
+                } else {
+                    btnStart.disabled = false;
+                    btnStop.disabled = true;
+                    statusTxt.innerHTML = '<span class="status-dot dot-stopped"></span><span style="color:var(--muted)">APAGADO</span>';
+                }
+
+                // Schedule Panel
+                if (data.schedule) {
+                    const s = data.schedule;
+                    document.getElementById('sched-utc').innerText = s.current_utc;
+                    document.getElementById('sched-hours').innerText = s.schedule + ' (' + s.weekday + ')';
+
+                    if (s.in_schedule) {
+                        document.getElementById('sched-next-label').innerText = 'Estado';
+                        document.getElementById('sched-next').innerText = '🟢 EN HORARIO';
+                        document.getElementById('sched-next').style.color = 'var(--green)';
+                    } else {
+                        document.getElementById('sched-next-label').innerText = 'Próxima Sesión';
+                        const h = Math.floor(s.seconds_to_next / 3600);
+                        const m = Math.floor((s.seconds_to_next % 3600) / 60);
+                        document.getElementById('sched-next').innerText = h > 0 ? `${h}h ${m}m` : `${m}m`;
+                        document.getElementById('sched-next').style.color = 'var(--accent)';
+                    }
+
+                    // Auto toggle state
+                    const toggle = document.getElementById('auto-toggle');
+                    const label = document.getElementById('auto-status-label');
+                    const slider = document.getElementById('auto-slider');
+                    const knob = document.getElementById('auto-knob');
+                    if (s.auto_enabled) {
+                        label.innerText = 'ON';
+                        label.style.color = 'var(--green)';
+                        slider.style.background = 'var(--green)';
+                        knob.style.transform = 'translateX(24px)';
+                    } else {
+                        label.innerText = 'OFF';
+                        label.style.color = 'var(--muted)';
+                        slider.style.background = '#374151';
+                        knob.style.transform = 'translateX(0)';
+                    }
+                }
+
+                // KPIs
+                if (data.account) {
+                    document.getElementById('val-balance').innerText = '$' + data.account.balance.toLocaleString();
+                    const profit = data.account.profit;
+                    const pnlEl = document.getElementById('val-pnl-live');
+                    pnlEl.innerText = 'Profit: ' + (profit >= 0 ? '+' : '') + '$' + profit.toLocaleString();
+                    pnlEl.style.color = profit >= 0 ? 'var(--green)' : 'var(--red)';
+                }
+
+                document.getElementById('val-trades-live').innerText = data.trades_today || 0;
+                document.getElementById('val-pnl-test').innerText = (data.virtual_pnl_today || 0).toFixed(1) + 'R';
+                document.getElementById('val-trades-test').innerText = 'Trades: ' + (data.virtual_trades_today || 0);
+
+                // Gold Status
+                document.getElementById('gold-count').innerText = data.trades_today || 0;
+                const livePos = data.live_positions || [];
+                document.getElementById('gold-pos').innerText = livePos.length > 0 ? livePos[0].symbol + ' ' + livePos[0].type : 'Ninguna';
+
+                // Euro Status
+                document.getElementById('euro-pnl').innerText = (data.virtual_pnl_today || 0).toFixed(1) + 'R';
+                const virtPos = data.virtual_positions || [];
+                document.getElementById('euro-pos').innerText = virtPos.length > 0 ? virtPos[0].symbol + ' ' + virtPos[0].signal : 'Ninguna';
+
+                // Radar
+                const radarContainer = document.getElementById('radar-container');
+                if (data.radar) {
+                    radarContainer.innerHTML = data.radar.map(item => `
+                        <div style="background:rgba(255,255,255,0.03); border-radius:12px; padding:15px; border:1px solid rgba(255,255,255,0.05)">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                                <span style="font-weight:700; font-size:0.9rem;">${item.label}</span>
+                                <span style="font-size:0.7rem; color:var(--muted)">${item.details}</span>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; font-size:0.7rem; margin-bottom:4px;">
+                                        <span>LONG Force</span>
+                                        <span>${item.long_score}%</span>
+                                    </div>
+                                    <div style="height:6px; background:#1f2937; border-radius:3px; overflow:hidden;">
+                                        <div style="width:${item.long_score}%; height:100%; background:var(--green); box-shadow:0 0 10px rgba(16,185,129,0.3)"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; font-size:0.7rem; margin-bottom:4px;">
+                                        <span>SHORT Force</span>
+                                        <span>${item.short_score}%</span>
+                                    </div>
+                                    <div style="height:6px; background:#1f2937; border-radius:3px; overflow:hidden;">
+                                        <div style="width:${item.short_score}%; height:100%; background:var(--red); box-shadow:0 0 10px rgba(244,63,94,0.3)"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                document.getElementById('last-update').innerText = new Date(data.last_update).toLocaleTimeString();
+
+            } catch (e) { console.error("Error actualizando status", e); }
+        }
+
+        async function controlBot(action) {
+            if (!confirm(`¿Estás seguro de que quieres ${action === 'start' ? 'iniciar' : 'detener'} el bot?`)) return;
+
+            try {
+                const res = await fetch('/api/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action })
+                });
+                const data = await res.json();
+                alert(data.message);
+                updateStatus();
+            } catch (e) { alert("Error al conectar con el servidor"); }
+        }
+
+        async function toggleAuto(enabled) {
+            try {
+                await fetch('/api/auto', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+                updateStatus();
+            } catch (e) { console.error("Error toggling auto", e); }
+        }
+
+        setInterval(updateStatus, 5000);
+        updateStatus();
+    </script>
+
+</body>
+
+</html>

@@ -62,6 +62,16 @@ BE_TRIGGER_R       = 1.0
 TRAIL_DISTANCE_MULT = 0.5
 EOD_CLOSE_H        = 16
 
+# 🛡️ PROTECCIÓN PROP FIRM (FTMO / MyFundedFX $100K)
+PROP_FIRM = {
+    "starting_balance": 100000,   # Balance inicial de la cuenta
+    "daily_dd_limit":   0.04,     # 4% (paramos ANTES del 5% del broker)
+    "max_dd_limit":     0.08,     # 8% (paramos ANTES del 10% del broker)
+    "base_risk":        1.5,      # Riesgo base: 1.5%
+    "reduced_risk":     0.75,     # Riesgo reducido cuando hay peligro
+    "max_consecutive_losses": 2,  # Reducir riesgo tras 2 pérdidas seguidas
+}
+
 STATE_FILE     = "bot_state_mt5_v5.json"
 MAX_RECONNECT_ATTEMPTS = 10
 RECONNECT_DELAY_SECS   = 30
@@ -208,6 +218,89 @@ def connect_mt5() -> bool:
         return False
     logger.success(f"✅ Conectado a MT5 | Cuenta: {info.login} | Balance: ${info.balance:,.2f}")
     return True
+
+
+class PropFirmGuard:
+    """Protección inteligente contra violaciones de drawdown en prop firms."""
+    
+    def __init__(self, state: dict):
+        acct = mt5.account_info()
+        self.balance = acct.balance if acct else PROP_FIRM["starting_balance"]
+        self.equity = acct.equity if acct else self.balance
+        
+        # Balance de referencia (el más alto registrado o el inicial)
+        self.starting_balance = state.get("prop_starting_balance", PROP_FIRM["starting_balance"])
+        self.peak_balance = state.get("prop_peak_balance", self.starting_balance)
+        self.peak_balance = max(self.peak_balance, self.balance)
+        
+        # Balance al inicio del día
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        if state.get("prop_day") != today:
+            state["prop_day"] = today
+            state["prop_day_start_balance"] = self.balance
+            state["consecutive_losses"] = state.get("consecutive_losses", 0)
+        self.day_start_balance = state.get("prop_day_start_balance", self.balance)
+        
+        # Pérdidas consecutivas
+        self.consecutive_losses = state.get("consecutive_losses", 0)
+        
+        # Calcular drawdowns actuales
+        self.daily_dd = (self.day_start_balance - self.equity) / self.day_start_balance if self.day_start_balance > 0 else 0
+        self.total_dd = (self.peak_balance - self.equity) / self.peak_balance if self.peak_balance > 0 else 0
+        
+        # Guardar en estado
+        state["prop_peak_balance"] = self.peak_balance
+        state["prop_starting_balance"] = self.starting_balance
+    
+    def can_trade(self) -> tuple[bool, str]:
+        """Verifica si es seguro abrir un nuevo trade."""
+        dd_daily_limit = PROP_FIRM["daily_dd_limit"]
+        dd_max_limit = PROP_FIRM["max_dd_limit"]
+        
+        if self.daily_dd >= dd_daily_limit:
+            return False, f"🚨 DAILY DD alcanzado: {self.daily_dd:.2%} >= {dd_daily_limit:.0%}"
+        
+        if self.total_dd >= dd_max_limit:
+            return False, f"🚨 MAX DD alcanzado: {self.total_dd:.2%} >= {dd_max_limit:.0%}"
+        
+        return True, "OK"
+    
+    def get_risk_pct(self) -> float:
+        """Calcula el riesgo dinámico según la situación."""
+        base = PROP_FIRM["base_risk"]
+        reduced = PROP_FIRM["reduced_risk"]
+        
+        # Reducir riesgo si acumulamos pérdidas consecutivas
+        if self.consecutive_losses >= PROP_FIRM["max_consecutive_losses"]:
+            logger.warning(f"⚠️ {self.consecutive_losses} pérdidas seguidas → Riesgo reducido a {reduced}%")
+            return reduced
+        
+        # Reducir riesgo si el daily DD supera el 50% del límite
+        if self.daily_dd >= PROP_FIRM["daily_dd_limit"] * 0.5:
+            logger.warning(f"⚠️ Daily DD al {self.daily_dd:.1%} → Riesgo reducido a {reduced}%")
+            return reduced
+        
+        # Reducir riesgo si el total DD supera el 50% del límite
+        if self.total_dd >= PROP_FIRM["max_dd_limit"] * 0.5:
+            logger.warning(f"⚠️ Total DD al {self.total_dd:.1%} → Riesgo reducido a {reduced}%")
+            return reduced
+        
+        return base
+    
+    def get_status_dict(self) -> dict:
+        """Estado para el dashboard."""
+        return {
+            "daily_dd": round(self.daily_dd * 100, 2),
+            "daily_dd_limit": PROP_FIRM["daily_dd_limit"] * 100,
+            "total_dd": round(self.total_dd * 100, 2),
+            "total_dd_limit": PROP_FIRM["max_dd_limit"] * 100,
+            "current_risk": self.get_risk_pct(),
+            "consecutive_losses": self.consecutive_losses,
+            "peak_balance": self.peak_balance,
+            "day_start_balance": self.day_start_balance,
+            "can_trade": self.can_trade()[0],
+            "status_msg": self.can_trade()[1],
+        }
 
 def ensure_connected() -> bool:
     try:
@@ -504,17 +597,32 @@ def run_bot():
     state = load_state()
     active_symbols = {bn: find_symbol(bn) for bn in SYMBOL_CONFIGS if find_symbol(bn)}
     
-    tg.notify_bot_started(list(active_symbols.keys()), 1.5)
+    tg.notify_bot_started(list(active_symbols.keys()), PROP_FIRM["base_risk"])
 
     while True:
         if not ensure_connected(): break
         
         manage_positions(state)
         
+        # 🛡️ Prop Firm Guard
+        guard = PropFirmGuard(state)
+        state["prop_firm"] = guard.get_status_dict()
+        
+        can_trade, reason = guard.can_trade()
+        if not can_trade:
+            logger.warning(f"🛑 TRADING BLOQUEADO: {reason}")
+            if not state.get("dd_alert_sent_today"):
+                tg.notify_error(f"🛑 TRADING BLOQUEADO\n{reason}\nDaily DD: {guard.daily_dd:.2%}\nTotal DD: {guard.total_dd:.2%}")
+                state["dd_alert_sent_today"] = True
+            save_state(state)
+            time.sleep(60)
+            continue
+        
+        risk_pct = guard.get_risk_pct()
+        
         for base_name, symbol in active_symbols.items():
             config = SYMBOL_CONFIGS[base_name]
             
-            # Solo buscar entrada si no hay posición (real o virtual según corresponda)
             has_pos = False
             if config.get("live"):
                 has_pos = len(mt5.positions_get(symbol=symbol, magic=123456) or []) > 0
@@ -529,9 +637,19 @@ def run_bot():
                     setup = get_signal_mean_reversion(symbol, base_name)
                     
                 if setup:
-                    execute_trade(symbol, base_name, setup, 1.5, state)
+                    execute_trade(symbol, base_name, setup, risk_pct, state)
         
-        save_state(state) # Actualizar estado para el dashboard
+        # Reset diario
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        if state.get("last_trade_date") != today:
+            state["last_trade_date"] = today
+            state["trades_today"] = 0
+            state["pnl_today"] = 0.0
+            state["virtual_trades_today"] = 0
+            state["virtual_pnl_today"] = 0.0
+            state["dd_alert_sent_today"] = False
+        
+        save_state(state)
         time.sleep(60)
 
 def find_symbol(base_name: str) -> str | None:

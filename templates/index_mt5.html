@@ -330,6 +330,68 @@
             </div>
         </div>
 
+        <!-- Prop Firm Guard Card -->
+        <div id="prop-guard-alert"
+            style="display:none; background:rgba(244,63,94,0.15); border:1px solid var(--red); border-radius:12px; padding:15px; margin-bottom:20px; color:var(--red); font-weight:600; text-align:center;">
+            🚨 TRADING BLOQUEADO: Límite de Drawdown alcanzado.
+        </div>
+
+        <div class="card" style="margin-bottom:20px; border: 1px solid rgba(16,185,129,0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <div>
+                    <div class="card-label">🛡️ Prop Firm Guard</div>
+                    <div style="font-size:0.85rem; color:var(--muted); margin-top:4px;">Protección contra violaciones de
+                        límites de cuenta</div>
+                </div>
+                <div id="prop-risk-badge"
+                    style="background:rgba(16,185,129,0.2); color:var(--green); padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; border:1px solid var(--green);">
+                    RIESGO: 1.5%
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px;">
+                <!-- Daily DD Column -->
+                <div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <span style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Daily
+                            Drawdown</span>
+                        <span style="font-size:0.85rem; font-weight:700;" id="prop-daily-val">0.00% / 4%</span>
+                    </div>
+                    <div
+                        style="height:10px; background:#1f2937; border-radius:5px; overflow:hidden; border:1px solid rgba(255,255,255,0.05);">
+                        <div id="prop-daily-bar"
+                            style="width:0%; height:100%; background:var(--green); transition:0.5s ease-out; box-shadow:0 0 10px rgba(16,185,129,0.2);">
+                        </div>
+                    </div>
+                    <div
+                        style="display:flex; justify-content:space-between; font-size:0.65rem; margin-top:5px; color:var(--muted);">
+                        <span>Iniciado: <span id="prop-day-start">$0</span></span>
+                        <span>Límite: <span id="prop-day-limit">$0</span></span>
+                    </div>
+                </div>
+
+                <!-- Total DD Column -->
+                <div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <span style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Total
+                            Drawdown</span>
+                        <span style="font-size:0.85rem; font-weight:700;" id="prop-total-val">0.00% / 8%</span>
+                    </div>
+                    <div
+                        style="height:10px; background:#1f2937; border-radius:5px; overflow:hidden; border:1px solid rgba(255,255,255,0.05);">
+                        <div id="prop-total-bar"
+                            style="width:0%; height:100%; background:var(--accent); transition:0.5s ease-out; box-shadow:0 0 10px rgba(59,130,246,0.2);">
+                        </div>
+                    </div>
+                    <div
+                        style="display:flex; justify-content:space-between; font-size:0.65rem; margin-top:5px; color:var(--muted);">
+                        <span>Pico (ATH): <span id="prop-peak">$0</span></span>
+                        <span>Límite (8%): <span id="prop-total-limit">$0</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- KPIs Real-time -->
         <div class="grid-3">
             <div class="card">
@@ -445,6 +507,46 @@
                         label.style.color = 'var(--muted)';
                         slider.style.background = '#374151';
                         knob.style.transform = 'translateX(0)';
+                    }
+                }
+
+                // Prop Firm Guard Panel
+                if (data.prop_firm) {
+                    const pf = data.prop_firm;
+
+                    // Daily DD
+                    const dailyPct = (pf.daily_dd / pf.daily_dd_limit) * 100;
+                    document.getElementById('prop-daily-val').innerText = `${pf.daily_dd.toFixed(2)}% / ${pf.daily_dd_limit}%`;
+                    const dailyBar = document.getElementById('prop-daily-bar');
+                    dailyBar.style.width = Math.min(100, dailyPct) + '%';
+                    dailyBar.style.background = pf.daily_dd > pf.daily_dd_limit * 0.7 ? 'var(--red)' :
+                        pf.daily_dd > pf.daily_dd_limit * 0.4 ? 'var(--accent)' : 'var(--green)';
+
+                    document.getElementById('prop-day-start').innerText = '$' + pf.day_start_balance.toLocaleString();
+                    document.getElementById('prop-day-limit').innerText = '$' + (pf.day_start_balance * (1 - pf.daily_dd_limit / 100)).toLocaleString();
+
+                    // Total DD
+                    const totalPct = (pf.total_dd / pf.total_dd_limit) * 100;
+                    document.getElementById('prop-total-val').innerText = `${pf.total_dd.toFixed(2)}% / ${pf.total_dd_limit}%`;
+                    const totalBar = document.getElementById('prop-total-bar');
+                    totalBar.style.width = Math.min(100, totalPct) + '%';
+
+                    document.getElementById('prop-peak').innerText = '$' + pf.peak_balance.toLocaleString();
+                    document.getElementById('prop-total-limit').innerText = '$' + (pf.peak_balance * (1 - pf.total_dd_limit / 100)).toLocaleString();
+
+                    // Risk & Alert
+                    const riskBadge = document.getElementById('prop-risk-badge');
+                    riskBadge.innerText = `RIESGO: ${pf.current_risk}%`;
+                    riskBadge.style.color = pf.current_risk < 1 ? 'var(--accent)' : 'var(--green)';
+                    riskBadge.style.borderColor = pf.current_risk < 1 ? 'var(--accent)' : 'var(--green)';
+                    riskBadge.style.background = pf.current_risk < 1 ? 'rgba(59,130,246,0.1)' : 'rgba(16,185,129,0.1)';
+
+                    const alertEl = document.getElementById('prop-guard-alert');
+                    if (!pf.can_trade) {
+                        alertEl.style.display = 'block';
+                        alertEl.innerText = `🚨 TRADING BLOQUEADO: ${pf.status_msg}`;
+                    } else {
+                        alertEl.style.display = 'none';
                     }
                 }
 

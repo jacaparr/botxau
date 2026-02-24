@@ -124,12 +124,18 @@ def auto_scheduler_loop():
 
 @app.route("/")
 def index():
-    return render_template("index_mt5.html")
+    return render_template("stitch.html")
 
 @app.route("/api/status")
 def api_status():
     data = read_state()
     data["schedule"] = is_trading_hours()
+    # Añadir proyecciones del estudio (50% reinversión)
+    data["projections"] = {
+        "year_1": 14363,
+        "year_3": 67829,
+        "monthly_target": 1029
+    }
     return jsonify(data)
 
 @app.route("/api/schedule")
@@ -143,6 +149,23 @@ def api_auto():
     enabled = request.json.get("enabled", True)
     AUTO_SCHEDULER_ENABLED = enabled
     return jsonify({"status": "success", "auto_enabled": AUTO_SCHEDULER_ENABLED})
+
+@app.route("/api/signals")
+def api_signals():
+    """Obtiene datos de velas para el gráfico y proximidad de señales."""
+    try:
+        data = read_state()
+        # En una versión real, aquí llamaríamos a una función de MT5 para traer últimas 30 velas
+        # Por ahora, enviamos placeholders estructurados para que el dashboard sepa dibujarlos
+        return jsonify({
+            "status": "success",
+            "symbol": "XAUUSD",
+            "ema": data.get("ema", 0),
+            "rsi": data.get("rsi", 0),
+            "candles": [] # Podríamos integrar datos reales aquí
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 
 @app.route("/api/control", methods=["POST"])
 def api_control():

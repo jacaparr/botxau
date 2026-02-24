@@ -25,6 +25,7 @@ from dataclasses import dataclass, asdict
 import logger
 import telegram_notify as tg
 import strategy_eurusd as strat_eur
+import pandas_ta as ta
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURACIÓN DE SÍMBOLOS Y ESTRATEGIAS
@@ -33,19 +34,11 @@ import strategy_eurusd as strat_eur
 SYMBOL_CONFIGS = {
     "XAUUSD": {
         "aliases":     ["XAUUSD", "GOLD", "XAUUSDm", "XAUUSD.a", "GOLD.a"],
-        "strategy":    "ASIAN_BREAKOUT",
-        "live":        True,        # Target: MT5 Account (Demo or Real)
-        "min_range":   3.0,
-        "max_range":   20.0,
-        "tp_mult":     2.5,
-        "sl_buffer":   0.001,
-    },
-    "EURUSD": {
-        "aliases":     ["EURUSD", "EURUSDm", "EURUSD.a"],
-        "strategy":    "MEAN_REVERSION",
-        "live":        True,        # Target: MT5 Account (Demo or Real)
+        "strategy":    "INDICATOR_TREND", # Cambiado a la estrategia potente
+        "live":        True,
         "timeframe":   mt5.TIMEFRAME_H1,
-    }
+        "adx_min":     20.0,
+    },
 }
 
 # Parámetros Comunes
@@ -67,9 +60,9 @@ PROP_FIRM = {
     "starting_balance": 100000,   # Balance inicial de la cuenta
     "daily_dd_limit":   0.04,     # 4% (paramos ANTES del 5% del broker)
     "max_dd_limit":     0.08,     # 8% (paramos ANTES del 10% del broker)
-    "base_risk":        1.5,      # Riesgo base: 1.5%
-    "reduced_risk":     0.75,     # Riesgo reducido cuando hay peligro
-    "max_consecutive_losses": 2,  # Reducir riesgo tras 2 pérdidas seguidas
+    "base_risk":        0.05,     # Objetivo: $1,000/mes con seguridad (0.05%)
+    "reduced_risk":     0.02,     # Riesgo ultra-reducido tras pérdidas
+    "max_consecutive_losses": 2,  
 }
 
 STATE_FILE     = "bot_state_mt5_v5.json"
@@ -120,37 +113,36 @@ def calculate_radar() -> list:
     """Calcula la proximidad de señales para el dashboard."""
     radar_data = []
     
-    # 1. XAUUSD (Asian Breakout)
+    # 1. XAUUSD (Indicator Trend - La Potente)
     try:
         symbol = find_symbol("XAUUSD")
         if symbol:
-            now = datetime.now(timezone.utc)
-            df_15m = get_candles(symbol, mt5.TIMEFRAME_M15, 100)
-            tick = mt5.symbol_info_tick(symbol)
-            if not df_15m.empty and tick:
-                today = now.date()
-                asian = df_15m[(df_15m.index.date == today) & (df_15m.index.hour >= ASIAN_START_H) & (df_15m.index.hour < ASIAN_END_H)]
+            df = get_candles(symbol, mt5.TIMEFRAME_H1, 100)
+            if not df.empty:
+                df['ema'] = ta.ema(df['close'], length=50)
+                df['rsi'] = ta.rsi(df['close'], length=14)
+                last = df.iloc[-1]
+                rsi = float(last['rsi'])
+                ema = float(last['ema'])
+                close = float(last['close'])
                 
-                hi, lo = (float(asian["high"].max()), float(asian["low"].min())) if len(asian) >= 4 else (0, 0)
+                # Long Score: Price > EMA and RSI > 50
+                l_score = 0
+                if close > ema:
+                    l_score = max(0, min(100, (rsi - 45) / 10 * 100))
                 
-                # Proximidad a los bordes del rango (0-100)
-                long_score = 0
-                short_score = 0
-                if hi > 0 and LONDON_START_H <= now.hour < LONDON_END_H:
-                    # Si el precio está cerca del HI (Long)
-                    dist_hi = abs(tick.ask - hi)
-                    long_score = max(0, min(100, 100 - (dist_hi / (hi*0.001)) * 100)) if hi > 0 else 0
-                    # Si el precio está cerca del LO (Short)
-                    dist_lo = abs(tick.bid - lo)
-                    short_score = max(0, min(100, 100 - (dist_lo / (lo*0.001)) * 100)) if lo > 0 else 0
+                # Short Score: Price < EMA and RSI < 50
+                s_score = 0
+                if close < ema:
+                    s_score = max(0, min(100, (55 - rsi) / 10 * 100))
 
                 radar_data.append({
                     "symbol": "XAUUSD",
-                    "label": "Oro (Asian Breakout)",
-                    "long_score": round(long_score, 1),
-                    "short_score": round(short_score, 1),
-                    "in_window": LONDON_START_H <= now.hour < LONDON_END_H,
-                    "details": f"Range: {hi:.2f} - {lo:.2f}" if hi > 0 else "Calculando rango..."
+                    "label": "Oro (Potente H1)",
+                    "long_score": round(l_score, 1),
+                    "short_score": round(s_score, 1),
+                    "in_window": True,
+                    "details": f"RSI: {rsi:.1f} | EMA: {ema:.1f}"
                 })
     except: pass
 
@@ -355,6 +347,11 @@ def get_signal_asian_breakout(symbol: str, base_name: str) -> TradeSetup | None:
     if rates_1h is None: return None
     df_1h = pd.DataFrame(rates_1h)
     ema50 = df_1h['close'].ewm(span=50, adjust=False).mean().iloc[-1]
+    
+    # Nuevo Filtro Francotirador: ADX > 30
+    adx_series = ta.adx(df_1h['high'], df_1h['low'], df_1h['close'])['ADX_14']
+    adx_val = adx_series.iloc[-1]
+    if adx_val < config.get("adx_min", 20.0): return None
 
     london = df_15m[(df_15m.index.date == today) & (df_15m.index.hour >= LONDON_START_H) & (df_15m.index.hour < LONDON_END_H)]
     if len(london) > MAX_ENTRY_CANDLES: return None
@@ -377,6 +374,37 @@ def get_signal_mean_reversion(symbol: str, base_name: str) -> TradeSetup | None:
     if res:
         sig, entry, sl, tp = res
         return TradeSetup(sig, entry, sl, tp)
+    return None
+
+def get_signal_indicator_trend(symbol: str, base_name: str) -> TradeSetup | None:
+    """Estrategia Potente basada en EMA 50 + RSI 14 (Trend Following)."""
+    config = SYMBOL_CONFIGS[base_name]
+    df = get_candles(symbol, config["timeframe"], 100)
+    if df.empty: return None
+    
+    # Calcular Indicadores (EMA, RSI, ADX, ATR)
+    df['ema'] = ta.ema(df['close'], length=50)
+    df['rsi'] = ta.rsi(df['close'], length=14)
+    df['adx'] = ta.adx(df['high'], df['low'], df['close'])['ADX_14']
+    df['atr'] = ta.atr(df['high'], df['low'], df['close'], length=14)
+    
+    last = df.iloc[-1]
+    if last['adx'] < config.get("adx_min", 20.0): return None
+    
+    # Señal LONG: Precio > EMA50 y RSI > 55
+    if last['close'] > last['ema'] and last['rsi'] > 55:
+        entry = float(last['close'])
+        sl = entry - float(last['atr']) * 2.5
+        tp = entry + float(last['atr']) * 5.0
+        return TradeSetup("LONG", entry, sl, tp)
+        
+    # Señal SHORT: Precio < EMA50 y RSI < 45
+    elif last['close'] < last['ema'] and last['rsi'] < 45:
+        entry = float(last['close'])
+        sl = entry + float(last['atr']) * 2.5
+        tp = entry - float(last['atr']) * 5.0
+        return TradeSetup("SHORT", entry, sl, tp)
+        
     return None
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -635,6 +663,8 @@ def run_bot():
                     setup = get_signal_asian_breakout(symbol, base_name)
                 elif config["strategy"] == "MEAN_REVERSION":
                     setup = get_signal_mean_reversion(symbol, base_name)
+                elif config["strategy"] == "INDICATOR_TREND":
+                    setup = get_signal_indicator_trend(symbol, base_name)
                     
                 if setup:
                     execute_trade(symbol, base_name, setup, risk_pct, state)

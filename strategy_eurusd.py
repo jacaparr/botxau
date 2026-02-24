@@ -65,7 +65,7 @@ def check_signals(df_in: pd.DataFrame):
     # Parámetros de la estrategia
     RSI_OVERSOLD = 30
     RSI_OVERBOUGHT = 70
-    ADX_MAX = 25  
+    ADX_MAX = 20  
     
     # Usar .get() o verificar columnas para evitar errores si faltan indicadores
     req_cols = ['bb_lower', 'bb_upper', 'bb_mid', 'rsi', 'adx', 'atr', 'close']

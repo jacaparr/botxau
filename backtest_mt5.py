@@ -26,6 +26,8 @@ SYMBOLS_TO_TEST = {
     "GBPUSD":  {"atr_sl": 1.5, "atr_tp": 3.0, "rsi_long": 55, "rsi_short": 45, "adx_min": 25},
     "USDJPY":  {"atr_sl": 1.5, "atr_tp": 3.0, "rsi_long": 55, "rsi_short": 45, "adx_min": 25},
     "GBPJPY":  {"atr_sl": 2.0, "atr_tp": 4.0, "rsi_long": 55, "rsi_short": 45, "adx_min": 22},
+    # Oro
+    "XAUUSD":  {"atr_sl": 2.5, "atr_tp": 5.0, "rsi_long": 55, "rsi_short": 45, "adx_min": 20},
     # Plata
     "XAGUSD":  {"atr_sl": 2.0, "atr_tp": 4.0, "rsi_long": 55, "rsi_short": 45, "adx_min": 20},
 }

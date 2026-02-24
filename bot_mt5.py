@@ -464,9 +464,14 @@ def execute_trade(symbol: str, base_name: str, setup: TradeSetup, risk_pct: floa
             save_state(state)
             return True
         else:
-            err_msg = f"Error enviando orden: {res.retcode if res else 'None'}" 
+            retcode = res.retcode if res else "None"
+            err_msg = f"Error enviando orden: {retcode}" 
             logger.error(err_msg)
-            tg.notify_error(err_msg)
+            
+            # Silenciamos en Telegram errores de mercado cerrado o auto-trading desactivado para no molestar al usuario
+            silent_codes = [10018, 10027, mt5.TRADE_RETCODE_MARKET_CLOSED, mt5.TRADE_RETCODE_AUTOTRADING_DISABLED]
+            if retcode not in silent_codes:
+                tg.notify_error(err_msg)
     else:
         # VIRTUAL PAPER TRADING
         # Solo notificamos por Telegram y guardamos en estado virtual

@@ -119,7 +119,7 @@ def auto_scheduler_loop():
                     print(f"⏰ Auto-Scheduler: Arrancando bot ({schedule['current_utc']})")
                     try:
                         subprocess.Popen(
-                            ["python", BOT_SCRIPT, "--risk", "1.5", "--interval", "60"],
+                            ["python", BOT_SCRIPT, "--risk", "0.15", "--interval", "60"],
                             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
                         )
                     except Exception as e:

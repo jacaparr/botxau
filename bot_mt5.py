@@ -68,8 +68,8 @@ PROP_FIRM = {
     "starting_balance": 100000,   # Balance inicial de la cuenta
     "daily_dd_limit":   0.04,     # 4% (paramos ANTES del 5% del broker)
     "max_dd_limit":     0.08,     # 8% (paramos ANTES del 10% del broker)
-    "base_risk":        0.5,      # MODO CHALLENGE: 0.5% para pasar el 10% de FTMO
-    "reduced_risk":     0.2,      # Riesgo tras pérdidas en modo agresivo
+    "base_risk":        0.15,     # MODO CHALLENGE: 0.15% para pasar el 10% de forma segura (~31 días)
+    "reduced_risk":     0.05,     # Reducción drástica si hay problemas
     "max_consecutive_losses": 2,  
 }
 
@@ -129,19 +129,24 @@ def calculate_radar() -> list:
             if not df.empty:
                 df['ema'] = ta.ema(df['close'], length=50)
                 df['rsi'] = ta.rsi(df['close'], length=14)
+                df['adx'] = ta.adx(df['high'], df['low'], df['close'])['ADX_14']
+                
                 last = df.iloc[-1]
                 rsi = float(last['rsi'])
                 ema = float(last['ema'])
                 close = float(last['close'])
+                adx = float(last['adx'])
                 
-                # Long Score: Price > EMA and RSI > 50
+                adx_min = SYMBOL_CONFIGS["XAUUSD"].get("adx_min", 20.0)
+                
+                # Long Score: Price > EMA and RSI > 50 and ADX > 20
                 l_score = 0
-                if close > ema:
+                if close > ema and adx >= adx_min:
                     l_score = max(0, min(100, (rsi - 45) / 10 * 100))
                 
-                # Short Score: Price < EMA and RSI < 50
+                # Short Score: Price < EMA and RSI < 50 and ADX > 20
                 s_score = 0
-                if close < ema:
+                if close < ema and adx >= adx_min:
                     s_score = max(0, min(100, (55 - rsi) / 10 * 100))
 
                 radar_data.append({
@@ -150,7 +155,7 @@ def calculate_radar() -> list:
                     "long_score": round(l_score, 1),
                     "short_score": round(s_score, 1),
                     "in_window": True,
-                    "details": f"RSI: {rsi:.1f} | EMA: {ema:.1f}"
+                    "details": f"RSI: {rsi:.1f} | EMA: {ema:.1f} | ADX: {adx:.1f}"
                 })
     except: pass
 

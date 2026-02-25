@@ -54,33 +54,33 @@ def _ensure_headers():
 
 def info(msg: str):
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{Fore.CYAN}[{ts}] ℹ️  {msg}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}[{ts}] (i) {msg}{Style.RESET_ALL}")
     _file_logger.info(msg)
 
 
 def success(msg: str):
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{Fore.GREEN}[{ts}] ✅ {msg}{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}[{ts}] [OK] {msg}{Style.RESET_ALL}")
     _file_logger.info(msg)
 
 
 def warning(msg: str):
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{Fore.YELLOW}[{ts}] ⚠️  {msg}{Style.RESET_ALL}")
+    print(f"{Fore.YELLOW}[{ts}] (!) {msg}{Style.RESET_ALL}")
     _file_logger.warning(msg)
 
 
 def error(msg: str):
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{Fore.RED}[{ts}] ❌ {msg}{Style.RESET_ALL}")
+    print(f"{Fore.RED}[{ts}] [X] {msg}{Style.RESET_ALL}")
     _file_logger.error(msg)
 
 
 def signal(symbol: str, direction: str, entry: float, sl: float, tp: float):
     color = Fore.GREEN if direction == "LONG" else Fore.RED
-    arrow = "📈" if direction == "LONG" else "📉"
+    arrow = ">>" if direction == "LONG" else "<<"
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    msg = (f"SEÑAL {direction} | {symbol} | "
+    msg = (f"SENAL {direction} | {symbol} | "
            f"Entry: {entry:.4f} | SL: {sl:.4f} | TP: {tp:.4f}")
     print(f"{color}[{ts}] {arrow} {msg}{Style.RESET_ALL}")
     _file_logger.info(msg)

@@ -19,8 +19,16 @@ import argparse
 import csv
 import os
 import json
+import sys
 from datetime import datetime, timezone, timedelta
 from dataclasses import dataclass, asdict
+
+# Forzar codificación UTF-8 para evitar errores en terminales Windows
+if sys.stdout.encoding.lower() != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except: pass
 
 import logger
 import telegram_notify as tg
@@ -60,8 +68,8 @@ PROP_FIRM = {
     "starting_balance": 100000,   # Balance inicial de la cuenta
     "daily_dd_limit":   0.04,     # 4% (paramos ANTES del 5% del broker)
     "max_dd_limit":     0.08,     # 8% (paramos ANTES del 10% del broker)
-    "base_risk":        0.05,     # Objetivo: $1,000/mes con seguridad (0.05%)
-    "reduced_risk":     0.02,     # Riesgo ultra-reducido tras pérdidas
+    "base_risk":        0.5,      # MODO CHALLENGE: 0.5% para pasar el 10% de FTMO
+    "reduced_risk":     0.2,      # Riesgo tras pérdidas en modo agresivo
     "max_consecutive_losses": 2,  
 }
 
@@ -378,6 +386,12 @@ def get_signal_mean_reversion(symbol: str, base_name: str) -> TradeSetup | None:
 
 def get_signal_indicator_trend(symbol: str, base_name: str) -> TradeSetup | None:
     """Estrategia Potente basada en EMA 50 + RSI 14 (Trend Following)."""
+    now = datetime.now(timezone.utc)
+    
+    # 🕒 FILTRO DE HORA: Evitar entrar después de las 15:00 UTC para no cerrar inmediatamente a las 16:00
+    if now.hour >= EOD_CLOSE_H:
+        return None
+
     config = SYMBOL_CONFIGS[base_name]
     df = get_candles(symbol, config["timeframe"], 100)
     if df.empty: return None
@@ -445,6 +459,15 @@ def execute_trade(symbol: str, base_name: str, setup: TradeSetup, risk_pct: floa
         sl_dist = abs(setup.entry - setup.sl)
         lot = calc_lot_size(symbol, sl_dist, risk_pct)
         
+        # Detectar el mejor modo de ejecución (filling mode) soportado por el broker
+        s_info = mt5.symbol_info(symbol)
+        filling = mt5.ORDER_FILLING_IOC # Default
+        if s_info:
+            if s_info.filling_mode & 1: # SYMBOL_FILLING_FOK
+                filling = mt5.ORDER_FILLING_FOK
+            elif s_info.filling_mode & 2: # SYMBOL_FILLING_IOC
+                filling = mt5.ORDER_FILLING_IOC
+
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
             "symbol": symbol,
@@ -455,7 +478,7 @@ def execute_trade(symbol: str, base_name: str, setup: TradeSetup, risk_pct: floa
             "tp": round(setup.tp, 2),
             "magic": 123456,
             "comment": "XAU-LIVE-v5",
-            "type_filling": mt5.ORDER_FILLING_IOC,
+            "type_filling": filling,
         }
         res = mt5.order_send(request)
         if res and res.retcode == mt5.TRADE_RETCODE_DONE:
@@ -465,11 +488,19 @@ def execute_trade(symbol: str, base_name: str, setup: TradeSetup, risk_pct: floa
             return True
         else:
             retcode = res.retcode if res else "None"
-            err_msg = f"Error enviando orden: {retcode}" 
+            
+            # Mapeo de errores comunes para ayudar al usuario
+            error_details = ""
+            if retcode == 10031: error_details = " (Auto-trading desactivado en MT5)"
+            elif retcode == 10018: error_details = " (Mercado cerrado o sin liquidez)"
+            elif retcode == 10013: error_details = " (Invalid Request - Revisa parámetros)"
+            
+            err_msg = f"Error enviando orden: {retcode}{error_details}" 
             logger.error(err_msg)
             
-            # Silenciamos en Telegram errores de mercado cerrado o auto-trading desactivado para no molestar al usuario
-            silent_codes = [10018, 10027, mt5.TRADE_RETCODE_MARKET_CLOSED, mt5.TRADE_RETCODE_AUTOTRADING_DISABLED]
+            # Silenciamos en Telegram errores de mercado cerrado o auto-trading desactivado si ya se avisó
+            # Pero la primera vez es bueno que el usuario sepa POR QUÉ falló
+            silent_codes = [10018, 10027, mt5.TRADE_RETCODE_MARKET_CLOSED]
             if retcode not in silent_codes:
                 tg.notify_error(err_msg)
     else:

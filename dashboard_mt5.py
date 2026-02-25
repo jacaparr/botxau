@@ -16,9 +16,17 @@ import subprocess
 import signal
 import psutil
 import threading
+import sys
 from datetime import datetime, timezone, timedelta
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
+
+# Forzar codificación UTF-8 para evitar errores en terminales Windows
+if sys.stdout.encoding.lower() != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except: pass
 
 app = Flask(__name__)
 CORS(app)

@@ -660,6 +660,11 @@
                         const offsetL = 226 - (226 * lScore / 100), offsetS = 226 - (226 * sScore / 100);
                         document.getElementById('gauge-gold-fill').style.strokeDashoffset = offsetL;
                         document.getElementById('gauge-gold-val').innerText = Math.round(lScore) + '%';
+
+                        // Mostrar el tipo de estrategia (ICT Sniper / Trend) en el label
+                        const labelEl = document.querySelector('.gauge-label');
+                        labelEl.innerHTML = `Oro <span style="font-size:0.6rem; background:var(--accent); color:var(--bg); padding:2px 6px; border-radius:4px; margin-left:5px;">${goldRad.strategy || 'Trend'}</span>`;
+
                         document.getElementById('gauge-gold-details').innerText = goldRad.details;
                         document.getElementById('gauge-short-fill').style.strokeDashoffset = offsetS;
                         document.getElementById('gauge-short-val').innerText = Math.round(sScore) + '%';

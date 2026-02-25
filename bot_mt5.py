@@ -42,7 +42,7 @@ import pandas_ta as ta
 SYMBOL_CONFIGS = {
     "XAUUSD": {
         "aliases":     ["XAUUSD", "GOLD", "XAUUSDm", "XAUUSD.a", "GOLD.a"],
-        "strategy":    "INDICATOR_TREND", # Cambiado a la estrategia potente
+        "strategy":    "ENSEMBLE", # Combinación de Trend + ICT
         "live":        True,
         "timeframe":   mt5.TIMEFRAME_H1,
         "adx_min":     20.0,
@@ -139,6 +139,10 @@ def calculate_radar() -> list:
                 
                 adx_min = SYMBOL_CONFIGS["XAUUSD"].get("adx_min", 20.0)
                 
+                # Check ICT
+                ict = get_signal_ict_silver_bullet(symbol, "XAUUSD")
+                ict_label = f" | ICT: {ict.signal if ict else 'None'}"
+                
                 # Long Score: Price > EMA and RSI > 50 and ADX > 20
                 l_score = 0
                 if close > ema and adx >= adx_min:
@@ -151,11 +155,12 @@ def calculate_radar() -> list:
 
                 radar_data.append({
                     "symbol": "XAUUSD",
-                    "label": "Oro (Potente H1)",
-                    "long_score": round(l_score, 1),
-                    "short_score": round(s_score, 1),
+                    "label": "Oro (Ensemble)",
+                    "strategy": "ICT Sniper" if ict else "Trend Filtered",
+                    "long_score": round(100 if (ict and ict.signal == "LONG") else l_score, 1),
+                    "short_score": round(100 if (ict and ict.signal == "SHORT") else s_score, 1),
                     "in_window": True,
-                    "details": f"RSI: {rsi:.1f} | EMA: {ema:.1f} | ADX: {adx:.1f}"
+                    "details": f"RSI: {rsi:.1f} | EMA: {ema:.1f} | ADX: {adx:.1f}{ict_label}"
                 })
     except: pass
 
@@ -425,6 +430,67 @@ def get_signal_indicator_trend(symbol: str, base_name: str) -> TradeSetup | None
         return TradeSetup("SHORT", entry, sl, tp)
         
     return None
+
+def get_signal_ict_silver_bullet(symbol: str, base_name: str) -> TradeSetup | None:
+    """Estrategia ICT Silver Bullet (10-11 AM NY). Especialidad: Oro."""
+    now = datetime.now(timezone.utc)
+    
+    # Ventana Silver Bullet (15:00 - 16:00 UTC)
+    if not (15 <= now.hour < 16):
+        return None
+
+    # Necesitamos 5m para el detalle del FVG
+    df_5m = get_candles(symbol, mt5.TIMEFRAME_M5, 100)
+    if df_5m.empty: return None
+
+    # 1. Definir liquidez previa (8:30 - 10:00 AM NY / 13:30 - 15:00 UTC)
+    today = now.date()
+    pre_market = df_5m[(df_5m.index.date == today) & (df_5m.index.hour >= 13) & (df_5m.index.minute >= 30) | 
+                       (df_5m.index.date == today) & (df_5m.index.hour == 14)]
+    
+    # Filtro más simple para liquidez pre-sesión
+    pre_df = df_5m[(df_5m.index.date == today) & (df_5m.index.hour >= 13) & (df_5m.index.hour < 15)]
+    if pre_df.empty: return None
+    
+    daily_high = float(pre_df["high"].max())
+    daily_low = float(pre_df["low"].min())
+
+    # 2. Buscar FVG en las últimas velas
+    c1 = df_5m.iloc[-3]
+    c2 = df_5m.iloc[-2]
+    c3 = df_5m.iloc[-1]
+    
+    fvg_bull = c3['low'] > c1['high']
+    fvg_bear = c3['high'] < c1['low']
+    
+    swept_high = c3['high'] > daily_high
+    swept_low = c3['low'] < daily_low
+
+    if swept_low and fvg_bull:
+        entry = float(c3['close'])
+        sl = float(c2['low'])
+        tp = entry + abs(entry - sl) * 2.0
+        logger.info(f"🎯 ICT Silver Bullet LONG detectado en {symbol}")
+        return TradeSetup("LONG", entry, sl, tp)
+    
+    elif swept_high and fvg_bear:
+        entry = float(c3['close'])
+        sl = float(c2['high'])
+        tp = entry - abs(sl - entry) * 2.0
+        logger.info(f"🎯 ICT Silver Bullet SHORT detectado en {symbol}")
+        return TradeSetup("SHORT", entry, sl, tp)
+
+    return None
+
+def get_signal_ensemble(symbol: str, base_name: str) -> TradeSetup | None:
+    """Combina ICT Silver Bullet y Indicator Trend (Prioriza ICT)."""
+    # 1. Intentar ICT (Precisión Quirúrgica)
+    setup = get_signal_ict_silver_bullet(symbol, base_name)
+    if setup:
+        return setup
+    
+    # 2. Si no hay ICT, usar la Tendencia Potente (Frecuencia)
+    return get_signal_indicator_trend(symbol, base_name)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # EJECUCIÓN (Live vs Virtual)
@@ -706,6 +772,8 @@ def run_bot():
                     setup = get_signal_mean_reversion(symbol, base_name)
                 elif config["strategy"] == "INDICATOR_TREND":
                     setup = get_signal_indicator_trend(symbol, base_name)
+                elif config["strategy"] == "ENSEMBLE":
+                    setup = get_signal_ensemble(symbol, base_name)
                     
                 if setup:
                     execute_trade(symbol, base_name, setup, risk_pct, state)

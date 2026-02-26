@@ -1,0 +1,1076 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ STITCH | Quant Dashboard v5.2.1 [LIVE]</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg: #020617;
+            --surface: rgba(15, 23, 42, 0.6);
+            --surface-bright: rgba(30, 41, 59, 0.7);
+            --accent: #facc15;
+            /* Gold */
+            --accent-glow: rgba(250, 204, 21, 0.3);
+            --cyan: #38bdf8;
+            --emerald: #10b981;
+            --rose: #f43f5e;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+            --stitch-border: 2px solid var(--border);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            background-image:
+                radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(250, 204, 21, 0.05) 0%, transparent 50%);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            padding: 24px;
+        }
+
+        .stitch-container {
+            max-width: 1300px;
+            width: 100%;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 24px;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .brand {
+            padding: 24px;
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: var(--border) 1px solid;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            background: var(--accent);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--bg);
+            font-weight: 800;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .brand-name {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .side-card {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: var(--border) 1px solid;
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .side-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .stat-name {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .stat-val {
+            font-family: 'JetBrains Mono';
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .header-bar {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: var(--border) 1px solid;
+            border-radius: 20px;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .bot-identity {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .pulse-orb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--emerald);
+            box-shadow: 0 0 15px var(--emerald);
+            animation: pulse-glow 2s infinite;
+        }
+
+        .orb-stopped {
+            background: var(--text-dim);
+            box-shadow: none;
+            animation: none;
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.3);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .control-btns {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            background: var(--surface-bright);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-start {
+            background: var(--emerald);
+            border: none;
+            color: white !important;
+        }
+
+        .btn-start:hover {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-stop {
+            background: var(--rose);
+            border: none;
+            color: white !important;
+        }
+
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .kpi-card {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: var(--border) 1px solid;
+            border-radius: 24px;
+            padding: 28px;
+            position: relative;
+            overflow: hidden;
+            transition: 0.3s;
+        }
+
+        .kpi-card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-4px);
+        }
+
+        .kpi-title {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono';
+            color: var(--text);
+        }
+
+        .kpi-change {
+            font-size: 0.85rem;
+            margin-top: 4px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .up {
+            color: var(--emerald);
+        }
+
+        .down {
+            color: var(--rose);
+        }
+
+        .strat-grid {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr;
+            gap: 24px;
+        }
+
+        .chart-card {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: var(--border) 1px solid;
+            border-radius: 24px;
+            padding: 28px;
+            height: 420px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .radar-card {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: var(--border) 1px solid;
+            border-radius: 24px;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .gauge-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .gauge-box {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .gauge-visual {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gauge-svg {
+            transform: rotate(-90deg);
+            width: 80px;
+            height: 80px;
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.05);
+            stroke-width: 8;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke: var(--accent);
+            stroke-width: 8;
+            stroke-dasharray: 226;
+            stroke-dashoffset: 226;
+            transition: stroke-dashoffset 1s ease-out;
+            stroke-linecap: round;
+        }
+
+        .gauge-rose {
+            stroke: var(--rose) !important;
+        }
+
+        .gauge-emerald {
+            stroke: var(--emerald) !important;
+        }
+
+        .gauge-pct {
+            position: absolute;
+            font-family: 'JetBrains Mono';
+            font-weight: 800;
+            font-size: 1rem;
+            color: var(--text);
+        }
+
+        .gauge-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .gauge-label {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .gauge-details {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .stitch-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 6px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 22px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #334155;
+            border-radius: 20px;
+            transition: .3s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: .3s;
+        }
+
+        input:checked+.slider {
+            background: var(--emerald);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(22px);
+        }
+
+        .btn-disabled {
+            opacity: 0.4;
+            cursor: not-allowed !important;
+            pointer-events: none;
+        }
+
+        /* --- PROP FIRM HEALTH PANEL --- */
+        .health-panel {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 28px 32px;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 32px;
+            align-items: center;
+            transition: border-color 0.5s;
+        }
+
+        .health-panel.state-safe {
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        .health-panel.state-caution {
+            border-color: rgba(250, 204, 21, 0.4);
+        }
+
+        .health-panel.state-danger {
+            border-color: rgba(244, 63, 94, 0.5);
+            box-shadow: 0 0 30px rgba(244, 63, 94, 0.15);
+        }
+
+        .semaphore {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .sem-light {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.5s, box-shadow 0.5s;
+        }
+
+        .sem-light.active-green {
+            background: #10b981;
+            box-shadow: 0 0 18px rgba(16, 185, 129, 0.8);
+        }
+
+        .sem-light.active-yellow {
+            background: #facc15;
+            box-shadow: 0 0 18px rgba(250, 204, 21, 0.8);
+        }
+
+        .sem-light.active-red {
+            background: #f43f5e;
+            box-shadow: 0 0 18px rgba(244, 63, 94, 0.8);
+            animation: danger-pulse 1s infinite;
+        }
+
+        @keyframes danger-pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 18px rgba(244, 63, 94, 0.8);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(244, 63, 94, 1.0);
+            }
+        }
+
+        .health-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .health-bar-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .health-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+        }
+
+        .health-bar-label span:first-child {
+            color: var(--text-dim);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .health-bar-track {
+            height: 10px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: visible;
+        }
+
+        .health-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.8s ease-out, background 0.5s;
+        }
+
+        .health-bar-limit {
+            position: absolute;
+            top: -4px;
+            bottom: -4px;
+            width: 2px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+        }
+
+        .health-bar-limit::after {
+            content: 'LÍMITE';
+            position: absolute;
+            top: -16px;
+            left: 4px;
+            font-size: 0.55rem;
+            color: var(--text-dim);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .health-action {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-end;
+            text-align: right;
+            min-width: 180px;
+        }
+
+        .health-status-label {
+            font-size: 1.3rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .health-msg {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+            max-width: 200px;
+        }
+
+        .recommended-risk {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 16px;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .recommended-risk strong {
+            display: block;
+            font-size: 1.1rem;
+            font-family: 'JetBrains Mono';
+            color: var(--text);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="stitch-container">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">S</div>
+                <div class="brand-name">STITCH</div>
+            </div>
+
+            <div class="side-card">
+                <div class="side-label">🏦 Prop Firm Status</div>
+                <div class="stat-row"><span class="stat-name">Balance</span><span class="stat-val"
+                        id="sb-balance">$---</span></div>
+                <div class="stat-row"><span class="stat-name">Pico (ATH)</span><span class="stat-val"
+                        id="sb-peak">$---</span></div>
+                <div class="stat-row"><span class="stat-name">D. Drawdown</span><span class="stat-val"
+                        id="sb-daily-dd">0.00%</span></div>
+                <div class="stat-row"><span class="stat-name">T. Drawdown</span><span class="stat-val"
+                        id="sb-total-dd">0.00%</span></div>
+            </div>
+
+            <div class="side-card">
+                <div class="side-label">📈 Wealth Projection</div>
+                <div class="stat-row"><span class="stat-name">Target 1 Año</span><span class="stat-val"
+                        style="color:var(--accent)" id="proj-year-1">$14,363</span></div>
+                <div class="stat-row"><span class="stat-name">Target 3 Años</span><span class="stat-val"
+                        style="color:var(--cyan)" id="proj-year-3">$67,829</span></div>
+                <div style="font-size:0.65rem; color:var(--text-dim); margin-top:5px; line-height:1.4;">*Basado en
+                    reinversión del 50%.</div>
+            </div>
+
+            <div class="side-card">
+                <div class="side-label">🛡️ Risk Center</div>
+                <div class="stat-row"><span class="stat-name">Riesgo Base</span><span class="stat-val" id="sb-risk"
+                        style="color:var(--accent)">0.05%</span></div>
+                <div class="stat-row"><span class="stat-name">Trades Hoy</span><span class="stat-val"
+                        id="sb-trades">0</span></div>
+                <div class="stat-row"><span class="stat-name">Próx. Ventana</span><span class="stat-val"
+                        id="sb-next-win" style="color:var(--cyan)">07:00</span></div>
+            </div>
+
+            <div class="side-card" style="margin-top:auto;">
+                <div class="side-label">⚙️ Quick Action</div>
+                <div class="stitch-toggle">
+                    <span style="font-size:0.8rem; font-weight:600;">Auto-Pilot</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-auto" checked onchange="handleToggleAuto(this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="header-bar">
+                <div class="bot-identity">
+                    <div id="status-orb" class="pulse-orb orb-stopped"></div>
+                    <div>
+                        <div style="font-weight:800; font-size:1.2rem; letter-spacing:-0.5px;">Quant Engine v5.2</div>
+                        <div style="font-size:0.75rem; color:var(--text-dim);" id="status-text">OFFLINE</div>
+                    </div>
+                </div>
+                <div class="control-btns">
+                    <button id="btn-start" class="btn btn-start" onclick="handleControl('start')"><i data-lucide="play"
+                            size="16" fill="currentColor"></i> START</button>
+                    <button id="btn-stop" class="btn btn-stop" onclick="handleControl('stop')"><i data-lucide="square"
+                            size="16" fill="currentColor"></i> STOP</button>
+                </div>
+            </header>
+
+            <div class="kpi-row">
+                <div class="kpi-card">
+                    <div class="kpi-title">Current Equity</div>
+                    <div class="kpi-value" id="kpi-equity">$---</div>
+                    <div class="kpi-change up" id="kpi-equity-pnl">0.00%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Daily Performance</div>
+                    <div class="kpi-value" id="kpi-daily">$0.00</div>
+                    <div class="kpi-change up" id="kpi-daily-pnl">No trades</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Test Pnl (EURUSD)</div>
+                    <div class="kpi-value" id="kpi-test">0.0R</div>
+                    <div class="kpi-change" style="color:var(--cyan)">Simulated</div>
+                </div>
+            </div>
+
+            <!-- 🚦 PROP FIRM HEALTH PANEL -->
+            <div class="health-panel state-safe" id="health-panel">
+                <!-- Semáforo -->
+                <div class="semaphore">
+                    <div class="sem-light" id="sem-red"></div>
+                    <div class="sem-light" id="sem-yellow"></div>
+                    <div class="sem-light active-green" id="sem-green"></div>
+                </div>
+
+                <!-- Barras de progreso -->
+                <div>
+                    <div
+                        style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-weight:700; letter-spacing:1px; margin-bottom:16px;">
+                        🚦 Prop Firm Health Monitor
+                    </div>
+                    <div class="health-bars">
+                        <div class="health-bar-row">
+                            <div class="health-bar-label">
+                                <span>Daily Drawdown</span>
+                                <span id="hb-daily-val"
+                                    style="font-family:'JetBrains Mono'; font-weight:700;">0.00%</span>
+                            </div>
+                            <div class="health-bar-track">
+                                <div class="health-bar-fill" id="hb-daily-fill"
+                                    style="width:0%; background:var(--emerald);"></div>
+                                <div class="health-bar-limit" style="left:80%;"></div>
+                            </div>
+                            <div
+                                style="font-size:0.65rem; color:var(--text-dim); display:flex; justify-content:space-between;">
+                                <span>0%</span><span>Límite: 4%</span><span>5% MAX</span>
+                            </div>
+                        </div>
+                        <div class="health-bar-row">
+                            <div class="health-bar-label">
+                                <span>Total Drawdown</span>
+                                <span id="hb-total-val"
+                                    style="font-family:'JetBrains Mono'; font-weight:700;">0.00%</span>
+                            </div>
+                            <div class="health-bar-track">
+                                <div class="health-bar-fill" id="hb-total-fill"
+                                    style="width:0%; background:var(--emerald);"></div>
+                                <div class="health-bar-limit" style="left:80%;"></div>
+                            </div>
+                            <div
+                                style="font-size:0.65rem; color:var(--text-dim); display:flex; justify-content:space-between;">
+                                <span>0%</span><span>Límite: 8%</span><span>10% MAX</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estado y acción recomendada -->
+                <div class="health-action">
+                    <div class="health-status-label" id="health-label" style="color:var(--emerald);">🟢 SEGURO</div>
+                    <div class="health-msg" id="health-msg">Cuenta en zona segura. Operar con riesgo estándar.</div>
+                    <div class="recommended-risk">
+                        Riesgo recomendado<strong id="health-risk">0.15%</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="strat-grid">
+                <!-- 📋 TRADES PANEL -->
+                <div
+                    style="background:var(--card); border:1px solid var(--border); border-radius:20px; padding:20px; margin-bottom:16px; grid-column:1/-1;">
+                    <div style="display:flex; gap:12px; margin-bottom:16px; align-items:center;">
+                        <span
+                            style="font-weight:700; font-size:0.8rem; text-transform:uppercase; letter-spacing:1px;">📋
+                            Trades</span>
+                        <button id="tab-open" onclick="switchTab('open')"
+                            style="background:var(--accent); color:#000; border:none; border-radius:8px; padding:5px 14px; font-size:0.75rem; font-weight:700; cursor:pointer;">Abiertas</button>
+                        <button id="tab-closed" onclick="switchTab('closed')"
+                            style="background:rgba(255,255,255,0.07); color:var(--text-dim); border:none; border-radius:8px; padding:5px 14px; font-size:0.75rem; font-weight:700; cursor:pointer;">Cerradas
+                            Hoy</button>
+                    </div>
+                    <!-- Posiciones abiertas -->
+                    <div id="panel-open">
+                        <table style="width:100%; border-collapse:collapse; font-size:0.78rem;">
+                            <thead>
+                                <tr
+                                    style="color:var(--text-dim); text-align:left; border-bottom:1px solid var(--border);">
+                                    <th style="padding:6px 8px;">Par</th>
+                                    <th style="padding:6px 8px;">Tipo</th>
+                                    <th style="padding:6px 8px;">Volumen</th>
+                                    <th style="padding:6px 8px;">Entrada</th>
+                                    <th style="padding:6px 8px;">PnL</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbl-open">
+                                <tr>
+                                    <td colspan="5" style="color:var(--text-dim); padding:12px 8px; font-size:0.75rem;">
+                                        Sin posiciones abiertas</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Historial cerradas -->
+                    <div id="panel-closed" style="display:none;">
+                        <table style="width:100%; border-collapse:collapse; font-size:0.78rem;">
+                            <thead>
+                                <tr
+                                    style="color:var(--text-dim); text-align:left; border-bottom:1px solid var(--border);">
+                                    <th style="padding:6px 8px;">Hora</th>
+                                    <th style="padding:6px 8px;">Par</th>
+                                    <th style="padding:6px 8px;">Tipo</th>
+                                    <th style="padding:6px 8px;">PnL $</th>
+                                    <th style="padding:6px 8px;">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbl-closed">
+                                <tr>
+                                    <td colspan="5" style="color:var(--text-dim); padding:12px 8px; font-size:0.75rem;">
+                                        Sin trades cerrados hoy</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title"><i data-lucide="bar-chart-3" color="#facc15"></i> Live Signal Monitor
+                        </div>
+                    </div>
+                    <div style="flex:1; width:100%; position:relative;"><canvas id="mainChart"></canvas></div>
+                </div>
+                <div class="radar-card">
+                    <div class="chart-header">
+                        <div class="chart-title"><i data-lucide="Zap" color="#facc15"></i> Strategy Radar</div>
+                    </div>
+                    <div class="gauge-container">
+                        <div class="gauge-box">
+                            <div class="gauge-visual"><svg class="gauge-svg">
+                                    <circle class="gauge-bg" cx="40" cy="40" r="36"></circle>
+                                    <circle id="gauge-gold-fill" class="gauge-fill" cx="40" cy="40" r="36"></circle>
+                                </svg><span class="gauge-pct" id="gauge-gold-val">0%</span></div>
+                            <div class="gauge-info"><span class="gauge-label">Oro Force</span><span
+                                    class="gauge-details" id="gauge-gold-details">---</span></div>
+                        </div>
+                        <div class="gauge-box">
+                            <div class="gauge-visual"><svg class="gauge-svg">
+                                    <circle class="gauge-bg" cx="40" cy="40" r="36"></circle>
+                                    <circle id="gauge-short-fill" class="gauge-fill gauge-rose" cx="40" cy="40" r="36">
+                                    </circle>
+                                </svg><span class="gauge-pct" id="gauge-short-val" style="color:var(--rose)">0%</span>
+                            </div>
+                            <div class="gauge-info"><span class="gauge-label" style="color:var(--rose)">Short
+                                    Depth</span><span class="gauge-details" id="gauge-short-details">---</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <footer class="footer">
+                <div>&copy; 2026 STITCH QUANT</div>
+                <div id="update-timestamp">Last check: --:--:--</div>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        const mainChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array.from({ length: 20 }, (_, i) => i),
+                datasets: [{ label: 'Signal Intensity', data: Array(20).fill(0), borderColor: '#facc15', borderWidth: 3, tension: 0.4, pointRadius: 0, fill: true, backgroundColor: 'rgba(250, 204, 21, 0.05)' }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b' } } } }
+        });
+
+        async function updateDashboard() {
+            try {
+                const res = await fetch('http://37.60.247.231:5000/api/status');
+                const data = await res.json();
+                const orb = document.getElementById('status-orb');
+                const stText = document.getElementById('status-text');
+                const bStart = document.getElementById('btn-start');
+                const bStop = document.getElementById('btn-stop');
+
+                if (data.is_running) {
+                    orb.classList.remove('orb-stopped'); stText.innerText = 'ENGINE ACTIVE'; stText.style.color = 'var(--emerald)';
+                    bStart.classList.add('btn-disabled'); bStop.classList.remove('btn-disabled');
+                } else {
+                    orb.classList.add('orb-stopped'); stText.innerText = 'OFFLINE'; stText.style.color = 'var(--text-dim)';
+                    bStart.classList.remove('btn-disabled'); bStop.classList.add('btn-disabled');
+                }
+
+                if (data.prop_firm) {
+                    const pf = data.prop_firm;
+                    document.getElementById('sb-daily-dd').innerText = pf.daily_dd.toFixed(2) + '%';
+                    document.getElementById('sb-total-dd').innerText = pf.total_dd.toFixed(2) + '%';
+                    document.getElementById('sb-balance').innerText = '$' + (data.account?.balance || 0).toLocaleString();
+                    document.getElementById('sb-peak').innerText = '$' + pf.peak_balance.toLocaleString();
+                    document.getElementById('sb-risk').innerText = pf.current_risk + '%';
+
+                    // ── 🚦 PROP FIRM HEALTH SEMAPHORE ──────────────────────────
+                    const dailyPct = pf.daily_dd;   // already in %
+                    const totalPct = pf.total_dd;   // already in %
+                    const DAILY_LIMIT = pf.daily_dd_limit || 4;
+                    const TOTAL_LIMIT = pf.total_dd_limit || 8;
+
+                    // Barras (escalar sobre el límite como 100%)
+                    const dailyBar = Math.min((dailyPct / DAILY_LIMIT) * 100, 100);
+                    const totalBar = Math.min((totalPct / TOTAL_LIMIT) * 100, 100);
+                    document.getElementById('hb-daily-val').innerText = dailyPct.toFixed(2) + '%';
+                    document.getElementById('hb-total-val').innerText = totalPct.toFixed(2) + '%';
+                    document.getElementById('hb-daily-fill').style.width = dailyBar + '%';
+                    document.getElementById('hb-total-fill').style.width = totalBar + '%';
+
+                    // Determinar estado
+                    const panel = document.getElementById('health-panel');
+                    const label = document.getElementById('health-label');
+                    const msg = document.getElementById('health-msg');
+                    const riskEl = document.getElementById('health-risk');
+                    const semG = document.getElementById('sem-green');
+                    const semY = document.getElementById('sem-yellow');
+                    const semR = document.getElementById('sem-red');
+                    const fills = [document.getElementById('hb-daily-fill'), document.getElementById('hb-total-fill')];
+
+                    const isDanger = dailyPct >= DAILY_LIMIT * 0.875 || totalPct >= TOTAL_LIMIT * 0.875;
+                    const isCaution = !isDanger && (dailyPct >= DAILY_LIMIT * 0.5 || totalPct >= TOTAL_LIMIT * 0.5);
+
+                    semG.className = 'sem-light'; semY.className = 'sem-light'; semR.className = 'sem-light';
+                    panel.className = 'health-panel';
+
+                    if (isDanger) {
+                        semR.className = 'sem-light active-red';
+                        panel.classList.add('state-danger');
+                        label.innerText = '🔴 PELIGRO'; label.style.color = 'var(--rose)';
+                        msg.innerText = 'Drawdown peligroso. Dejar de operar hoy o reducir riesgo urgente.';
+                        riskEl.innerText = '0.05%';
+                        fills.forEach(f => f.style.background = 'var(--rose)');
+                    } else if (isCaution) {
+                        semY.className = 'sem-light active-yellow';
+                        panel.classList.add('state-caution');
+                        label.innerText = '🟡 PRECAUCIÓN'; label.style.color = 'var(--accent)';
+                        msg.innerText = 'DD en zona de alerta. Recomendable reducir riesgo a la mitad.';
+                        riskEl.innerText = '0.08%';
+                        fills.forEach(f => f.style.background = 'var(--accent)');
+                    } else {
+                        semG.className = 'sem-light active-green';
+                        panel.classList.add('state-safe');
+                        label.innerText = '🟢 SEGURO'; label.style.color = 'var(--emerald)';
+                        msg.innerText = 'Cuenta en zona segura. Operar con riesgo estándar.';
+                        riskEl.innerText = pf.current_risk + '%';
+                        fills.forEach(f => f.style.background = 'var(--emerald)');
+                    }
+                }
+
+                if (data.schedule) {
+                    document.getElementById('sb-next-win').innerText = data.schedule.next_entry_window;
+                    document.getElementById('toggle-auto').checked = data.schedule.auto_enabled;
+                }
+                document.getElementById('sb-trades').innerText = data.trades_today || 0;
+
+                if (data.account) {
+                    const equity = data.account.equity || data.account.balance;
+                    const profit = data.account.profit || 0;
+                    document.getElementById('kpi-equity').innerText = '$' + equity.toLocaleString();
+                    const pnlEl = document.getElementById('kpi-equity-pnl');
+                    pnlEl.innerText = `${profit >= 0 ? '+' : ''}${((profit / data.account.balance) * 100).toFixed(2)}% ($${profit.toLocaleString()})`;
+                    pnlEl.className = `kpi-change ${profit >= 0 ? 'up' : 'down'}`;
+                }
+
+                document.getElementById('kpi-daily').innerText = '$' + (data.pnl_today || 0).toFixed(2);
+                document.getElementById('kpi-test').innerText = (data.virtual_pnl_today || 0).toFixed(1) + 'R';
+
+                if (data.radar) {
+                    const goldRad = data.radar.find(r => r.symbol === 'XAUUSD');
+                    if (goldRad) {
+                        const lScore = goldRad.long_score, sScore = goldRad.short_score;
+                        const offsetL = 226 - (226 * lScore / 100), offsetS = 226 - (226 * sScore / 100);
+                        document.getElementById('gauge-gold-fill').style.strokeDashoffset = offsetL;
+                        document.getElementById('gauge-gold-val').innerText = Math.round(lScore) + '%';
+                        document.getElementById('gauge-gold-details').innerText = goldRad.details;
+                        document.getElementById('gauge-short-fill').style.strokeDashoffset = offsetS;
+                        document.getElementById('gauge-short-val').innerText = Math.round(sScore) + '%';
+                        mainChart.data.datasets[0].data.shift();
+                        mainChart.data.datasets[0].data.push(Math.max(lScore, sScore));
+                        mainChart.update('none');
+                    }
+                }
+                // ── TRADES ABIERTAS ─────────────────────────────────────────
+                const positions = data.live_positions || [];
+                const tblOpen = document.getElementById('tbl-open');
+                if (positions.length > 0) {
+                    tblOpen.innerHTML = positions.map(p => {
+                        const pnlColor = p.profit >= 0 ? 'var(--emerald)' : 'var(--rose)';
+                        const typeColor = p.type === 'BUY' ? 'var(--emerald)' : 'var(--rose)';
+                        return `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                            <td style="padding:8px;font-weight:700;">${p.symbol}</td>
+                            <td style="padding:8px;color:${typeColor};font-weight:700;">${p.type}</td>
+                            <td style="padding:8px;">${p.volume}</td>
+                            <td style="padding:8px;font-family:'JetBrains Mono';">${p.price_open?.toFixed(2) || '---'}</td>
+                            <td style="padding:8px;color:${pnlColor};font-family:'JetBrains Mono';font-weight:700;">${p.profit >= 0 ? '+' : ''}$${p.profit?.toFixed(2) || '0.00'}</td>
+                        </tr>`;
+                    }).join('');
+                } else {
+                    tblOpen.innerHTML = '<tr><td colspan="5" style="color:var(--text-dim);padding:12px 8px;font-size:0.75rem;">Sin posiciones abiertas</td></tr>';
+                }
+
+                // ── TRADES CERRADAS HOY ──────────────────────────────────────
+                const closed = data.closed_trades_today || [];
+                const tblClosed = document.getElementById('tbl-closed');
+                if (closed.length > 0) {
+                    tblClosed.innerHTML = [...closed].reverse().map(t => {
+                        const pnlColor = t.pnl >= 0 ? 'var(--emerald)' : 'var(--rose)';
+                        const typeColor = t.signal === 'LONG' ? 'var(--emerald)' : 'var(--rose)';
+                        return `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                            <td style="padding:8px;color:var(--text-dim);">${(t.time || '').substring(11, 16)}</td>
+                            <td style="padding:8px;font-weight:700;">${t.symbol || 'XAUUSD'}</td>
+                            <td style="padding:8px;color:${typeColor};font-weight:700;">${t.signal || '---'}</td>
+                            <td style="padding:8px;color:${pnlColor};font-family:'JetBrains Mono';font-weight:700;">${t.pnl >= 0 ? '+' : ''}$${t.pnl?.toFixed(2) || '0.00'}</td>
+                            <td style="padding:8px;font-family:'JetBrains Mono';">$${t.balance?.toLocaleString() || '---'}</td>
+                        </tr>`;
+                    }).join('');
+                } else {
+                    tblClosed.innerHTML = '<tr><td colspan="5" style="color:var(--text-dim);padding:12px 8px;font-size:0.75rem;">Sin trades cerrados hoy</td></tr>';
+                }
+
+                document.getElementById('update-timestamp').innerText = 'Last check: ' + new Date().toLocaleTimeString();
+            } catch (err) { console.error(err); }
+        }
+
+        async function handleControl(action) {
+            try {
+                await fetch('http://37.60.247.231:5000/api/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+                updateDashboard();
+            } catch (err) { alert("Error"); }
+        }
+
+        function switchTab(tab) {
+            document.getElementById('panel-open').style.display = tab === 'open' ? 'block' : 'none';
+            document.getElementById('panel-closed').style.display = tab === 'closed' ? 'block' : 'none';
+            document.getElementById('tab-open').style.background = tab === 'open' ? 'var(--accent)' : 'rgba(255,255,255,0.07)';
+            document.getElementById('tab-open').style.color = tab === 'open' ? '#000' : 'var(--text-dim)';
+            document.getElementById('tab-closed').style.background = tab === 'closed' ? 'var(--accent)' : 'rgba(255,255,255,0.07)';
+            document.getElementById('tab-closed').style.color = tab === 'closed' ? '#000' : 'var(--text-dim)';
+        }
+
+        async function handleToggleAuto(enabled) {
+            try { await fetch('http://37.60.247.231:5000/api/auto', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }) }); } catch (err) { }
+        }
+
+        setInterval(updateDashboard, 5000); updateDashboard();
+    </script>
+</body>
+
+</html>

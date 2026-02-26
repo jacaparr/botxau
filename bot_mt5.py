@@ -108,7 +108,7 @@ PROP_FIRM = {
     "starting_balance": 25000,    # Balance inicial de la cuenta (RETO 25K)
     "daily_dd_limit":   0.04,     # 4% (paramos ANTES del 5% del broker)
     "max_dd_limit":     0.08,     # 8% (paramos ANTES del 10% del broker)
-    "base_risk":        0.15,     # MODO CHALLENGE: 0.15% para pasar el 10% de forma segura (~31 días)
+    "base_risk":        0.60,     # MODO CHALLENGE: 0.60% - pasa el reto en ~4 meses (MaxDD ~3.3%)
     "reduced_risk":     0.05,     # Reducción drástica si hay problemas
     "max_consecutive_losses": 2,  
 }

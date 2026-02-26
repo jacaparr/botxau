@@ -33,7 +33,47 @@ if sys.stdout.encoding.lower() != 'utf-8':
 import logger
 import telegram_notify as tg
 import strategy_eurusd as strat_eur
-import pandas_ta as ta
+import numpy as np
+
+# ─────────────────────────────────────────────────────────────────────────────
+# INDICADORES PUROS (sin pandas_ta, compatible con cualquier Python)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _ema(series: pd.Series, length: int) -> pd.Series:
+    return series.ewm(span=length, adjust=False).mean()
+
+def _rsi(series: pd.Series, length: int = 14) -> pd.Series:
+    delta = series.diff()
+    gain  = delta.clip(lower=0).rolling(window=length).mean()
+    loss  = (-delta.clip(upper=0)).rolling(window=length).mean()
+    rs    = gain / loss.replace(0, np.nan)
+    return 100 - (100 / (1 + rs))
+
+def _atr(high: pd.Series, low: pd.Series, close: pd.Series, length: int = 14) -> pd.Series:
+    tr = pd.concat([
+        high - low,
+        (high - close.shift()).abs(),
+        (low  - close.shift()).abs()
+    ], axis=1).max(axis=1)
+    return tr.rolling(window=length).mean()
+
+def _adx(high: pd.Series, low: pd.Series, close: pd.Series, length: int = 14) -> pd.Series:
+    up   = high.diff()
+    down = -low.diff()
+    pdm  = pd.Series(0.0, index=high.index)
+    mdm  = pd.Series(0.0, index=high.index)
+    pdm[(up > down) & (up > 0)]   = up[(up > down) & (up > 0)]
+    mdm[(down > up) & (down > 0)] = down[(down > up) & (down > 0)]
+    tr = pd.concat([
+        high - low,
+        (high - close.shift()).abs(),
+        (low  - close.shift()).abs()
+    ], axis=1).max(axis=1)
+    atr14 = tr.rolling(length).mean()
+    pdi   = 100 * pdm.rolling(length).mean() / atr14.replace(0, np.nan)
+    mdi   = 100 * mdm.rolling(length).mean() / atr14.replace(0, np.nan)
+    dx    = 100 * (pdi - mdi).abs() / (pdi + mdi).replace(0, np.nan)
+    return dx.rolling(length).mean()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURACIÓN DE SÍMBOLOS Y ESTRATEGIAS
@@ -65,7 +105,7 @@ EOD_CLOSE_H        = 16
 
 # 🛡️ PROTECCIÓN PROP FIRM (FTMO / MyFundedFX $100K)
 PROP_FIRM = {
-    "starting_balance": 100000,   # Balance inicial de la cuenta
+    "starting_balance": 25000,    # Balance inicial de la cuenta (RETO 25K)
     "daily_dd_limit":   0.04,     # 4% (paramos ANTES del 5% del broker)
     "max_dd_limit":     0.08,     # 8% (paramos ANTES del 10% del broker)
     "base_risk":        0.15,     # MODO CHALLENGE: 0.15% para pasar el 10% de forma segura (~31 días)
@@ -112,6 +152,25 @@ def save_state(state: dict):
                     "profit": p.profit
                 })
 
+        # Obtener historial de trades cerrados hoy
+        try:
+            today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+            deals = mt5.history_deals_get(today, datetime.now(timezone.utc))
+            closed = []
+            if deals:
+                for d in deals:
+                    if d.entry == 1:  # 1 = cierre de posición
+                        closed.append({
+                            "time": str(datetime.fromtimestamp(d.time, tz=timezone.utc)),
+                            "symbol": d.symbol,
+                            "signal": "LONG" if d.type == 0 else "SHORT",
+                            "pnl": round(d.profit, 2),
+                            "balance": round(acct.balance if acct else 0, 2)
+                        })
+            state["closed_trades_today"] = closed
+        except Exception:
+            state["closed_trades_today"] = []
+
         with open(STATE_FILE, "w") as f:
             json.dump(state, f, indent=2, default=str)
     except Exception as e:
@@ -127,9 +186,9 @@ def calculate_radar() -> list:
         if symbol:
             df = get_candles(symbol, mt5.TIMEFRAME_H1, 100)
             if not df.empty:
-                df['ema'] = ta.ema(df['close'], length=50)
-                df['rsi'] = ta.rsi(df['close'], length=14)
-                df['adx'] = ta.adx(df['high'], df['low'], df['close'])['ADX_14']
+                df['ema'] = _ema(df['close'], 50)
+                df['rsi'] = _rsi(df['close'], 14)
+                df['adx'] = _adx(df['high'], df['low'], df['close'])
                 
                 last = df.iloc[-1]
                 rsi = float(last['rsi'])
@@ -367,7 +426,7 @@ def get_signal_asian_breakout(symbol: str, base_name: str) -> TradeSetup | None:
     ema50 = df_1h['close'].ewm(span=50, adjust=False).mean().iloc[-1]
     
     # Nuevo Filtro Francotirador: ADX > 30
-    adx_series = ta.adx(df_1h['high'], df_1h['low'], df_1h['close'])['ADX_14']
+    adx_series = _adx(df_1h['high'], df_1h['low'], df_1h['close'])
     adx_val = adx_series.iloc[-1]
     if adx_val < config.get("adx_min", 20.0): return None
 
@@ -407,10 +466,10 @@ def get_signal_indicator_trend(symbol: str, base_name: str) -> TradeSetup | None
     if df.empty: return None
     
     # Calcular Indicadores (EMA, RSI, ADX, ATR)
-    df['ema'] = ta.ema(df['close'], length=50)
-    df['rsi'] = ta.rsi(df['close'], length=14)
-    df['adx'] = ta.adx(df['high'], df['low'], df['close'])['ADX_14']
-    df['atr'] = ta.atr(df['high'], df['low'], df['close'], length=14)
+    df['ema'] = _ema(df['close'], 50)
+    df['rsi'] = _rsi(df['close'], 14)
+    df['adx'] = _adx(df['high'], df['low'], df['close'])
+    df['atr'] = _atr(df['high'], df['low'], df['close'])
     
     last = df.iloc[-1]
     if last['adx'] < config.get("adx_min", 20.0): return None

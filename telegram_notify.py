@@ -17,9 +17,15 @@ Configuración:
 
 import os
 import json
+import ssl
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
+
+# Contexto SSL sin verificación (necesario en algunos VPS Windows)
+_SSL_CTX = ssl.create_default_context()
+_SSL_CTX.check_hostname = False
+_SSL_CTX.verify_mode = ssl.CERT_NONE
 
 try:
     from dotenv import load_dotenv
@@ -64,7 +70,7 @@ def _send_message(text: str, parse_mode: str = "HTML") -> bool:
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10, context=_SSL_CTX) as resp:
             return resp.status == 200
     except urllib.error.HTTPError as e:
         print(f"❌ Telegram API Error: {e.code} - {e.read().decode('utf-8')}")

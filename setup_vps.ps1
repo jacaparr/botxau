@@ -14,7 +14,8 @@ Write-Host "`n[1/4] Verificando Python..." -ForegroundColor Yellow
 try {
     python --version
     Write-Host "✅ Python detectado." -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "❌ Python no encontrado. Descargando instalador..." -ForegroundColor Red
     $url = "https://www.python.org/ftp/python/3.11.5/python-3.11.5-amd64.exe"
     $out = "$env:TEMP\python_install.exe"
@@ -37,18 +38,24 @@ Write-Host "IMPORTANTE: MT5 debe estar instalado y abierto en el VPS." -Foregrou
 $mt5_check = python -c "import MetaTrader5 as mt5; print('OK' if mt5.initialize() else 'ERROR')"
 if ($mt5_check -eq "OK") {
     Write-Host "✅ Conexión con MT5 exitosa." -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "⚠️ No se pudo conectar con MT5. Asegúrate de que esté ABIERTO." -ForegroundColor Yellow
 }
 
-# 4. Configurar arranque automático (Watchdog)
+# 4. Configurar arranque automático (Carpeta de Inicio)
 Write-Host "`n[4/4] Configurando arranque automático..." -ForegroundColor Yellow
-$action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c cd /d $PSScriptRoot && watchdog.bat"
-$trigger = New-ScheduledTaskTrigger -AtLogOn
-$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+$StartupFolder = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
+$ShortcutPath = "$StartupFolder\BotWatchdog.lnk"
+$WScriptShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WScriptShell.CreateShortcut($ShortcutPath)
+$Shortcut.TargetPath = "$PSScriptRoot\watchdog.bat"
+$Shortcut.WorkingDirectory = $PSScriptRoot
+$Shortcut.IconLocation = "powershell.exe,0"
+$Shortcut.Save()
 
-Register-ScheduledTask -TaskName "BotScalingGold" -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force
+Write-Host "✅ Acceso directo creado en: $StartupFolder" -ForegroundColor Green
+Write-Host "💡 Nota: El bot arrancará automáticamente cada vez que inicies sesión en el VPS." -ForegroundColor Cyan
 
 Write-Host "`n===============================================" -ForegroundColor Green
 Write-Host "✅ INSTALACIÓN COMPLETADA" -ForegroundColor Green

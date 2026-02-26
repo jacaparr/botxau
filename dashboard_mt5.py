@@ -132,7 +132,7 @@ def auto_scheduler_loop():
 
 @app.route("/")
 def index():
-    return render_template("stitch.html")
+    return render_template("index_mt5.html")
 
 @app.route("/api/status")
 def api_status():

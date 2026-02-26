@@ -1,13 +1,6 @@
 {
     "version": 2,
-    "name": "botxau-dashboard",
-    "outputDirectory": "public",
-    "builds": [
-        {
-            "src": "public/**",
-            "use": "@vercel/static"
-        }
-    ],
+    "cleanUrls": true,
     "routes": [
         {
             "src": "/(.*)",

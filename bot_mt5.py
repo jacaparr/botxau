@@ -19,6 +19,7 @@ import argparse
 import csv
 import os
 import json
+from pathlib import Path
 import sys
 from datetime import datetime, timezone, timedelta
 from dataclasses import dataclass, asdict
@@ -114,6 +115,7 @@ PROP_FIRM = {
 }
 
 STATE_FILE     = "bot_state_mt5_v5.json"
+TRADE_HISTORY_FILE = "trade_history.csv"  # Historial persistente de 30 días
 MAX_RECONNECT_ATTEMPTS = 10
 RECONNECT_DELAY_SECS   = 30
 DAILY_SUMMARY_HOUR     = 17
@@ -121,6 +123,55 @@ DAILY_SUMMARY_HOUR     = 17
 # ─────────────────────────────────────────────────────────────────────────────
 # ESTADO PERSISTENTE
 # ─────────────────────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HISTORIAL PERSISTENTE DE TRADES (CSV, 30 días)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def save_trade_history(trade: dict):
+    """Guarda el trade en el CSV histórico. Elimina registros > 30 días."""
+    fieldnames = [
+        "ticket", "symbol", "direction", "volume",
+        "time_open", "price_open", "sl", "tp",
+        "time_close", "price_close", "pnl", "balance_after"
+    ]
+    file_exists = Path(TRADE_HISTORY_FILE).exists()
+    
+    # Añadir nueva fila
+    with open(TRADE_HISTORY_FILE, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow({k: trade.get(k, "") for k in fieldnames})
+    
+    # Purgar registros > 30 días
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+    try:
+        with open(TRADE_HISTORY_FILE, "r", encoding="utf-8") as f:
+            rows = list(csv.DictReader(f))
+        rows = [r for r in rows if r.get("time_close", "") >= cutoff.isoformat()[:10]]
+        with open(TRADE_HISTORY_FILE, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+    except Exception:
+        pass
+
+def load_trade_history(days: int = 30) -> list:
+    """Carga el historial de trades de los últimos N días."""
+    if not Path(TRADE_HISTORY_FILE).exists():
+        return []
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    result = []
+    try:
+        with open(TRADE_HISTORY_FILE, "r", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                if row.get("time_close", "") >= cutoff.isoformat()[:10]:
+                    result.append(row)
+    except Exception:
+        pass
+    return result
+
 
 def save_state(state: dict):
     state["last_update"] = datetime.now(timezone.utc).isoformat()
@@ -152,24 +203,67 @@ def save_state(state: dict):
                     "profit": p.profit
                 })
 
-        # Obtener historial de trades cerrados hoy
+        # Obtener historial de trades cerrados hoy con datos completos
         try:
             today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-            deals = mt5.history_deals_get(today, datetime.now(timezone.utc))
+            now_utc = datetime.now(timezone.utc)
+            deals = mt5.history_deals_get(today, now_utc)
+            orders = mt5.history_orders_get(today, now_utc)
+            
+            # Mapear positions para obtener datos de apertura
+            pos_map = {}  # ticket -> order data
+            if orders:
+                for o in orders:
+                    pos_map[o.position_id] = o
+            
             closed = []
             if deals:
                 for d in deals:
-                    if d.entry == 1:  # 1 = cierre de posición
-                        closed.append({
-                            "time": str(datetime.fromtimestamp(d.time, tz=timezone.utc)),
+                    if d.entry == 1 and d.symbol:  # 1 = cierre de posición
+                        open_order = pos_map.get(d.position_id)
+                        time_open = ""
+                        price_open = d.price  # fallback
+                        sl = 0.0
+                        tp = 0.0
+                        
+                        if open_order:
+                            time_open = str(datetime.fromtimestamp(open_order.time_setup, tz=timezone.utc))
+                            sl = round(open_order.sl, 2)
+                            tp = round(open_order.tp, 2)
+                            # Buscar el deal de apertura para precio real
+                            open_deals = mt5.history_deals_get(position=d.position_id)
+                            if open_deals:
+                                for od in open_deals:
+                                    if od.entry == 0:  # 0 = apertura
+                                        price_open = round(od.price, 5)
+                                        time_open = str(datetime.fromtimestamp(od.time, tz=timezone.utc))
+                                        break
+                        
+                        trade_record = {
+                            "ticket": d.position_id,
+                            "time_close": str(datetime.fromtimestamp(d.time, tz=timezone.utc)),
+                            "time_open": time_open,
                             "symbol": d.symbol,
-                            "signal": "LONG" if d.type == 0 else "SHORT",
+                            "direction": "LONG" if d.type == 0 else "SHORT",
+                            "volume": round(d.volume, 2),
+                            "price_open": price_open,
+                            "price_close": round(d.price, 5),
+                            "sl": sl,
+                            "tp": tp,
                             "pnl": round(d.profit, 2),
-                            "balance": round(acct.balance if acct else 0, 2)
-                        })
+                            "balance_after": round(acct.balance if acct else 0, 2)
+                        }
+                        closed.append(trade_record)
+                        # Guardar permanentemente en el CSV histórico (usa los mismos datos)
+                        save_trade_history(trade_record)
+            
             state["closed_trades_today"] = closed
-        except Exception:
+            # Incluir últimos 30 días en el estado para el dashboard
+            state["trade_history"] = load_trade_history(30)
+        except Exception as e:
+            logger.error(f"Error cargando historial: {e}")
             state["closed_trades_today"] = []
+            state["trade_history"] = []
 
         with open(STATE_FILE, "w") as f:
             json.dump(state, f, indent=2, default=str)

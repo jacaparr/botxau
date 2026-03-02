@@ -107,10 +107,51 @@ def is_trading_hours() -> dict:
     }
 
 
+def export_mt5_history(days=45):
+    """Extrae el historial real de trades desde MetaTrader 5."""
+    import MetaTrader5 as mt5
+    if not mt5.initialize():
+        return False
+
+    from_date = datetime.now().timestamp() - (days * 24 * 60 * 60)
+    to_date = datetime.now().timestamp()
+    
+    history_deals = mt5.history_deals_get(from_date, to_date)
+    if history_deals is None:
+        mt5.shutdown()
+        return False
+
+    deals_list = []
+    for deal in history_deals:
+        if deal.entry == mt5.DEAL_ENTRY_OUT: # Cierre
+            deals_list.append({
+                "ticket": deal.ticket,
+                "time_close": datetime.fromtimestamp(deal.time).strftime('%Y-%m-%d %H:%M:%S'),
+                "symbol": deal.symbol,
+                "direction": "SELL" if deal.type == mt5.DEAL_TYPE_SELL else "BUY",
+                "volume": deal.volume,
+                "price_close": deal.price,
+                "pnl": round(deal.profit + deal.commission + deal.swap, 2),
+                "comment": deal.comment
+            })
+
+    with open("trade_history.json", "w") as f:
+        json.dump(deals_list, f, indent=2)
+    
+    mt5.shutdown()
+    return True
+
 def auto_scheduler_loop():
-    """Hilo que arranca el bot automáticamente en horario de trading."""
+    """Hilo que arranca el bot y actualiza el historial."""
+    last_history_upd = 0
     while True:
         try:
+            now_ts = time.time()
+            # Actualizar historial cada 30 minutos
+            if now_ts - last_history_upd > 1800:
+                if export_mt5_history():
+                    last_history_upd = now_ts
+
             if AUTO_SCHEDULER_ENABLED:
                 schedule = is_trading_hours()
                 is_running, _ = get_bot_status()
@@ -119,7 +160,7 @@ def auto_scheduler_loop():
                     print(f"⏰ Auto-Scheduler: Arrancando bot ({schedule['current_utc']})")
                     try:
                         subprocess.Popen(
-                            ["python", BOT_SCRIPT, "--risk", "0.15", "--interval", "60"],
+                            ["python", BOT_SCRIPT, "--risk", "0.60"], 
                             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
                         )
                     except Exception as e:
@@ -127,7 +168,7 @@ def auto_scheduler_loop():
         except Exception as e:
             print(f"❌ Scheduler error: {e}")
         
-        time.sleep(60)  # Comprobar cada minuto
+        time.sleep(60)
 
 
 @app.route("/")
@@ -138,6 +179,17 @@ def index():
 def api_status():
     data = read_state()
     data["schedule"] = is_trading_hours()
+    
+    # Cargar historial de trades si existe
+    if os.path.exists("trade_history.json"):
+        try:
+            with open("trade_history.json", "r") as f:
+                data["trade_history"] = json.load(f)
+        except:
+            data["trade_history"] = []
+    else:
+        data["trade_history"] = []
+
     # Añadir proyecciones del estudio (50% reinversión)
     data["projections"] = {
         "year_1": 14363,

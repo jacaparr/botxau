@@ -35,3 +35,4 @@ backtest_xau_*.csv
 # OS
 .DS_Store
 Thumbs.db
+.vercel

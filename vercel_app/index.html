@@ -374,12 +374,14 @@
             </div>
 
             <div class="side-card">
-                <div class="side-label">🌐 Remote Config</div>
-                <div style="display:flex; flex-direction:column; gap:8px;">
-                    <span style="font-size:0.75rem; color:var(--text-dim)">VPS Address:</span>
-                    <input type="text" id="vps-ip" class="config-input" placeholder="http://IP_DEL_VPS:5000"
-                        onchange="saveConfig()">
+                <div class="side-label">🌐 Conexión</div>
+                <div id="proxy-status" style="display:flex; align-items:center; gap:8px;">
+                    <span
+                        style="width:8px;height:8px;border-radius:50%;background:var(--text-dim);display:inline-block;"
+                        id="conn-dot"></span>
+                    <span style="font-size:0.8rem; color:var(--text-dim)" id="conn-label">Verificando VPS...</span>
                 </div>
+                <div style="font-size:0.7rem; color:var(--text-dim); margin-top:4px;">Via Vercel proxy → VPS</div>
             </div>
 
             <div class="side-card">
@@ -471,8 +473,9 @@
 
     <script>
         lucide.createIcons();
-        let vpsURL = localStorage.getItem('vps_addr') || 'http://37.60.247.231:5000';
-        document.getElementById('vps-ip').value = vpsURL;
+
+        // ✅ Todas las llamadas van al proxy de Vercel → sin CORS
+        const API = '';
 
         const ctx = document.getElementById('mainChart').getContext('2d');
         const chart = new Chart(ctx, {
@@ -481,26 +484,44 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' } } } }
         });
 
-        function saveConfig() {
-            vpsURL = document.getElementById('vps-ip').value;
-            if (vpsURL && !vpsURL.startsWith('http')) vpsURL = 'http://' + vpsURL;
-            localStorage.setItem('vps_addr', vpsURL);
-            update();
+        async function checkHealth() {
+            try {
+                const r = await fetch(API + '/api/health');
+                const d = await r.json();
+                const dot = document.getElementById('conn-dot');
+                const lbl = document.getElementById('conn-label');
+                if (d.vps_reachable) {
+                    dot.style.background = 'var(--emerald)';
+                    lbl.innerText = 'VPS conectado ✓';
+                    lbl.style.color = 'var(--emerald)';
+                } else {
+                    dot.style.background = 'var(--rose)';
+                    lbl.innerText = 'VPS sin respuesta';
+                    lbl.style.color = 'var(--rose)';
+                }
+            } catch (e) {
+                document.getElementById('conn-label').innerText = 'Proxy error';
+            }
         }
 
         async function update() {
-            if (!vpsURL) return;
             try {
-                const res = await fetch(vpsURL + '/api/status');
+                const res = await fetch(API + '/api/status');
                 const data = await res.json();
+
+                if (data.status === 'error') throw new Error(data.message);
 
                 document.getElementById('status-orb').className = data.is_running ? 'pulse-orb' : 'pulse-orb orb-stopped';
                 document.getElementById('status-text').innerText = data.is_running ? 'REMOTE ACTIVE' : 'REMOTE OFFLINE';
                 document.getElementById('status-text').style.color = data.is_running ? 'var(--emerald)' : 'var(--text-dim)';
 
                 if (data.prop_firm) {
+                    const ddColor = data.prop_firm.daily_dd > 2 ? 'var(--rose)' : 'var(--text)';
                     document.getElementById('sb-daily-dd').innerText = data.prop_firm.daily_dd.toFixed(2) + '%';
+                    document.getElementById('sb-daily-dd').style.color = ddColor;
+                    const tddColor = data.prop_firm.total_dd > 4 ? 'var(--rose)' : 'var(--text)';
                     document.getElementById('sb-total-dd').innerText = data.prop_firm.total_dd.toFixed(2) + '%';
+                    document.getElementById('sb-total-dd').style.color = tddColor;
                 }
 
                 if (data.account) {
@@ -512,13 +533,13 @@
                 if (data.radar) {
                     const g = data.radar.find(r => r.symbol === 'XAUUSD');
                     if (g) {
-                        const score = Math.max(g.long_score, g.short_score);
                         document.getElementById('gauge-gold').style.strokeDashoffset = 195 - (195 * g.long_score / 100);
                         document.getElementById('gold-pct').innerText = Math.round(g.long_score) + '%';
                         document.getElementById('gauge-short').style.strokeDashoffset = 195 - (195 * g.short_score / 100);
                         document.getElementById('short-pct').innerText = Math.round(g.short_score) + '%';
                         document.getElementById('gold-details').innerText = g.details;
 
+                        const score = Math.max(g.long_score, g.short_score);
                         chart.data.datasets[0].data.shift();
                         chart.data.datasets[0].data.push(score);
                         chart.update('none');
@@ -526,20 +547,30 @@
                 }
                 document.getElementById('last-upd').innerText = 'Last check: ' + new Date().toLocaleTimeString();
             } catch (e) {
-                document.getElementById('status-text').innerText = 'CONNECTION ERROR';
+                document.getElementById('status-text').innerText = 'VPS OFFLINE';
                 document.getElementById('status-text').style.color = 'var(--rose)';
+                document.getElementById('last-upd').innerText = 'Error: ' + e.message;
             }
         }
 
         async function handleAction(action) {
-            if (!confirm(`Confirm ${action}?`)) return;
+            if (!confirm(`¿Confirmar ${action.toUpperCase()} del bot en VPS?`)) return;
             try {
-                await fetch(vpsURL + '/api/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: action }) });
+                const r = await fetch(API + '/api/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action })
+                });
+                const d = await r.json();
+                alert(d.message || 'OK');
                 update();
-            } catch (e) { alert("Action failed"); }
+            } catch (e) { alert('Error: ' + e.message); }
         }
 
-        setInterval(update, 5000); update();
+        checkHealth();
+        setInterval(update, 5000);
+        setInterval(checkHealth, 30000);
+        update();
     </script>
 </body>
 

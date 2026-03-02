@@ -35,6 +35,10 @@ import logger
 import telegram_notify as tg
 import strategy_eurusd as strat_eur
 import numpy as np
+from dotenv import load_dotenv
+
+# Cargar variables de entorno (.env)
+load_dotenv()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # INDICADORES PUROS (sin pandas_ta, compatible con cualquier Python)
@@ -104,14 +108,14 @@ BE_TRIGGER_R       = 1.0
 TRAIL_DISTANCE_MULT = 0.5
 EOD_CLOSE_H        = 16
 
-# 🛡️ PROTECCIÓN PROP FIRM (FTMO / MyFundedFX $100K)
+# 🛡️ PROTECCIÓN PROP FIRM (Parámetros configurables via .env)
 PROP_FIRM = {
-    "starting_balance": 25000,    # Balance inicial de la cuenta (RETO 25K)
-    "daily_dd_limit":   0.04,     # 4% (paramos ANTES del 5% del broker)
-    "max_dd_limit":     0.08,     # 8% (paramos ANTES del 10% del broker)
-    "base_risk":        0.60,     # MODO CHALLENGE: 0.60% - pasa el reto en ~4 meses (MaxDD ~3.3%)
-    "reduced_risk":     0.05,     # Reducción drástica si hay problemas
-    "max_consecutive_losses": 2,  
+    "starting_balance": float(os.getenv("PROP_STARTING_BALANCE", 100000.0)),
+    "daily_dd_limit":   float(os.getenv("PROP_DAILY_DD_LIMIT", 0.04)),
+    "max_dd_limit":     float(os.getenv("PROP_MAX_DD_LIMIT", 0.08)),
+    "base_risk":        float(os.getenv("PROP_BASE_RISK", 0.60)),
+    "reduced_risk":     float(os.getenv("PROP_REDUCED_RISK", 0.05)),
+    "max_consecutive_losses": int(os.getenv("PROP_MAX_LOSSES", 2)),
 }
 
 STATE_FILE     = "bot_state_mt5_v5.json"

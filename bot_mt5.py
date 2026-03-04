@@ -87,7 +87,56 @@ def _adx(high: pd.Series, low: pd.Series, close: pd.Series, length: int = 14) ->
 SYMBOL_CONFIGS = {
     "XAUUSD": {
         "aliases":     ["XAUUSD", "GOLD", "XAUUSDm", "XAUUSD.a", "GOLD.a"],
-        "strategy":    "ENSEMBLE", # Combinación de Trend + ICT
+        "strategy":    "ENSEMBLE",
+        "live":        True,
+        "timeframe":   mt5.TIMEFRAME_H1,
+        "adx_min":     20.0,
+    },
+    "XAGUSD": {
+        "aliases":     ["XAGUSD", "SILVER", "XAGUSDm", "XAGUSD.a"],
+        "strategy":    "ENSEMBLE",
+        "live":        True,
+        "timeframe":   mt5.TIMEFRAME_H1,
+        "adx_min":     20.0,
+    },
+    "EURUSD": {
+        "aliases":     ["EURUSD", "EURUSDm", "EURUSD.a"],
+        "strategy":    "ENSEMBLE",
+        "live":        True,
+        "timeframe":   mt5.TIMEFRAME_H1,
+        "adx_min":     20.0,
+    },
+    "GBPUSD": {
+        "aliases":     ["GBPUSD", "GBPUSDm", "GBPUSD.a"],
+        "strategy":    "ENSEMBLE",
+        "live":        True,
+        "timeframe":   mt5.TIMEFRAME_H1,
+        "adx_min":     20.0,
+    },
+    "USDJPY": {
+        "aliases":     ["USDJPY", "USDJPYm", "USDJPY.a"],
+        "strategy":    "ENSEMBLE",
+        "live":        True,
+        "timeframe":   mt5.TIMEFRAME_H1,
+        "adx_min":     20.0,
+    },
+    "AUDUSD": {
+        "aliases":     ["AUDUSD", "AUDUSDm", "AUDUSD.a"],
+        "strategy":    "ENSEMBLE",
+        "live":        True,
+        "timeframe":   mt5.TIMEFRAME_H1,
+        "adx_min":     20.0,
+    },
+    "USDCAD": {
+        "aliases":     ["USDCAD", "USDCADm", "USDCAD.a"],
+        "strategy":    "ENSEMBLE",
+        "live":        True,
+        "timeframe":   mt5.TIMEFRAME_H1,
+        "adx_min":     20.0,
+    },
+    "USDCHF": {
+        "aliases":     ["USDCHF", "USDCHFm", "USDCHF.a"],
+        "strategy":    "ENSEMBLE",
         "live":        True,
         "timeframe":   mt5.TIMEFRAME_H1,
         "adx_min":     20.0,
@@ -104,8 +153,8 @@ SKIP_MONDAY    = True
 MAX_ENTRY_CANDLES = 4
 
 # Gestión de Riesgo Prop Firm
-BE_TRIGGER_R       = 1.0
-TRAIL_DISTANCE_MULT = 0.5
+BE_TRIGGER_R       = 0.7
+TRAIL_DISTANCE_MULT = 0.4
 EOD_CLOSE_H        = 16
 
 # 🛡️ PROTECCIÓN PROP FIRM (Parámetros configurables via .env)
@@ -113,7 +162,7 @@ PROP_FIRM = {
     "starting_balance": float(os.getenv("PROP_STARTING_BALANCE", 100000.0)),
     "daily_dd_limit":   float(os.getenv("PROP_DAILY_DD_LIMIT", 0.04)),
     "max_dd_limit":     float(os.getenv("PROP_MAX_DD_LIMIT", 0.08)),
-    "base_risk":        float(os.getenv("PROP_BASE_RISK", 0.60)),
+    "base_risk":        float(os.getenv("PROP_BASE_RISK", 0.45)),
     "reduced_risk":     float(os.getenv("PROP_REDUCED_RISK", 0.05)),
     "max_consecutive_losses": int(os.getenv("PROP_MAX_LOSSES", 2)),
 }
@@ -132,16 +181,33 @@ DAILY_SUMMARY_HOUR     = 17
 # HISTORIAL PERSISTENTE DE TRADES (CSV, 30 días)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def save_trade_history(trade: dict):
-    """Guarda el trade en el CSV histórico. Elimina registros > 30 días."""
+def save_trade_history(trade: dict) -> bool:
+    """
+    Guarda el trade en el CSV histórico SOLO si no existe ya (por ticket).
+    Retorna True si fue guardado como nuevo, False si ya existía (duplicado).
+    """
     fieldnames = [
         "ticket", "symbol", "direction", "volume",
         "time_open", "price_open", "sl", "tp",
         "time_close", "price_close", "pnl", "balance_after"
     ]
-    file_exists = Path(TRADE_HISTORY_FILE).exists()
+    ticket_id = str(trade.get("ticket", ""))
     
-    # Añadir nueva fila
+    # ✅ CHECK DE DUPLICADO: leer tickets existentes antes de escribir
+    existing_tickets = set()
+    if Path(TRADE_HISTORY_FILE).exists():
+        try:
+            with open(TRADE_HISTORY_FILE, "r", encoding="utf-8") as f:
+                for row in csv.DictReader(f):
+                    existing_tickets.add(str(row.get("ticket", "")))
+        except Exception:
+            pass
+    
+    if ticket_id and ticket_id in existing_tickets:
+        return False  # Ya existe, no duplicar
+    
+    # Añadir nueva fila solo si es nuevo
+    file_exists = Path(TRADE_HISTORY_FILE).exists()
     with open(TRADE_HISTORY_FILE, "a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         if not file_exists:
@@ -160,6 +226,7 @@ def save_trade_history(trade: dict):
             writer.writerows(rows)
     except Exception:
         pass
+    return True
 
 def load_trade_history(days: int = 30) -> list:
     """Carga el historial de trades de los últimos N días."""
@@ -258,8 +325,16 @@ def save_state(state: dict):
                             "balance_after": round(acct.balance if acct else 0, 2)
                         }
                         closed.append(trade_record)
-                        # Guardar permanentemente en el CSV histórico (usa los mismos datos)
-                        save_trade_history(trade_record)
+                        # Guardar en CSV solo si es un ticket NUEVO (evita duplicados en cada save_state)
+                        ticket_key = str(d.position_id)
+                        saved_tickets = state.setdefault("_saved_tickets", [])
+                        if ticket_key not in saved_tickets:
+                            if save_trade_history(trade_record):
+                                saved_tickets.append(ticket_key)
+                                logger.info(f"💾 Historial guardado: {d.symbol} #{ticket_key} PnL={trade_record['pnl']}")
+                        # Limpiar tickets de días anteriores del tracker en memoria
+                        if len(saved_tickets) > 500:
+                            state["_saved_tickets"] = saved_tickets[-200:]
             
             state["closed_trades_today"] = closed
             # Incluir últimos 30 días en el estado para el dashboard
@@ -275,83 +350,59 @@ def save_state(state: dict):
         logger.error(f"Error guardando estado: {e}")
 
 def calculate_radar() -> list:
-    """Calcula la proximidad de señales para el dashboard."""
+    """Calcula la proximidad de señales para todos los símbolos activos."""
     radar_data = []
     
-    # 1. XAUUSD (Indicator Trend - La Potente)
-    try:
-        symbol = find_symbol("XAUUSD")
-        if symbol:
-            df = get_candles(symbol, mt5.TIMEFRAME_H1, 100)
-            if not df.empty:
-                df['ema'] = _ema(df['close'], 50)
-                df['rsi'] = _rsi(df['close'], 14)
-                df['adx'] = _adx(df['high'], df['low'], df['close'])
-                
-                last = df.iloc[-1]
-                rsi = float(last['rsi'])
-                ema = float(last['ema'])
-                close = float(last['close'])
-                adx = float(last['adx'])
-                
-                adx_min = SYMBOL_CONFIGS["XAUUSD"].get("adx_min", 20.0)
-                
-                # Check ICT
-                ict = get_signal_ict_silver_bullet(symbol, "XAUUSD")
-                ict_label = f" | ICT: {ict.signal if ict else 'None'}"
-                
-                # Long Score: Price > EMA and RSI > 50 and ADX > 20
-                l_score = 0
-                if close > ema and adx >= adx_min:
-                    l_score = max(0, min(100, (rsi - 45) / 10 * 100))
-                
-                # Short Score: Price < EMA and RSI < 50 and ADX > 20
-                s_score = 0
-                if close < ema and adx >= adx_min:
-                    s_score = max(0, min(100, (55 - rsi) / 10 * 100))
-
-                radar_data.append({
-                    "symbol": "XAUUSD",
-                    "label": "Oro (Ensemble)",
-                    "strategy": "ICT Sniper" if ict else "Trend Filtered",
-                    "long_score": round(100 if (ict and ict.signal == "LONG") else l_score, 1),
-                    "short_score": round(100 if (ict and ict.signal == "SHORT") else s_score, 1),
-                    "in_window": True,
-                    "details": f"RSI: {rsi:.1f} | EMA: {ema:.1f} | ADX: {adx:.1f}{ict_label}"
-                })
-    except: pass
-
-    # 2. EURUSD (Mean Reversion)
-    try:
-        symbol = find_symbol("EURUSD")
-        if symbol:
-            df = get_candles(symbol, mt5.TIMEFRAME_H1, 100)
-            if not df.empty:
-                df = strat_eur.calculate_indicators(df)
-                last = df.iloc[-1]
-                rsi = float(last['rsi'])
-                adx = float(last['adx'])
-                close = float(last['close'])
-                bb_l, bb_u = float(last['bb_lower']), float(last['bb_upper'])
-                
-                # Long: RSI < 30, Price < BB_Lower, ADX < 25
-                l_rsi_score = max(0, min(100, (35 - rsi) / 10 * 100))
-                l_bb_score = max(0, min(100, (bb_l * 1.001 - close) / (bb_l * 0.002) * 100))
-                l_score = (l_rsi_score * 0.5 + l_bb_score * 0.5) if adx < 25 else 0
-                
-                # Short: RSI > 70, Price > BB_Upper, ADX < 25
-                s_rsi_score = max(0, min(100, (rsi - 65) / 10 * 100))
-                s_bb_score = max(0, min(100, (close - bb_u * 0.999) / (bb_u * 0.002) * 100))
-                s_score = (s_rsi_score * 0.5 + s_bb_score * 0.5) if adx < 25 else 0
-
-                radar_data.append({
-                    "symbol": "EURUSD",
-                    "label": "EURUSD (Mean Reversion)",
-                    "long_score": round(l_score, 1),
-                    "short_score": round(s_score, 1),
-                    "details": f"RSI: {rsi:.1f} | ADX: {adx:.1f}"
-                })
-    except: pass
+    for sym_key, config in SYMBOL_CONFIGS.items():
+        if not config.get("live"): continue
+        
+        try:
+            symbol = find_symbol(sym_key)
+            if not symbol: continue
+            
+            df = get_candles(symbol, config["timeframe"], 100)
+            if df.empty: continue
+            
+            # Cálculo de indicadores base
+            df['ema'] = _ema(df['close'], 50)
+            df['rsi'] = _rsi(df['close'], 14)
+            df['adx'] = _adx(df['high'], df['low'], df['close'])
+            
+            last = df.iloc[-1]
+            rsi = float(last['rsi'])
+            ema = float(last['ema'])
+            close = float(last['close'])
+            adx = float(last['adx'])
+            adx_min = config.get("adx_min", 20.0)
+            
+            # ICT Signal (Principalmente para Oro y Mayores)
+            ict = get_signal_ict_silver_bullet(symbol, sym_key)
+            ict_label = f" | ICT: {ict.signal}" if ict else ""
+            
+            # Trend Scores
+            l_score = 0
+            if close > ema and adx >= adx_min:
+                l_score = max(0, min(100, (rsi - 45) / 10 * 100))
+            
+            s_score = 0
+            if close < ema and adx >= adx_min:
+                s_score = max(0, min(100, (55 - rsi) / 10 * 100))
+            
+            # Sobrescribir con 100% si hay ICT activo
+            final_long = 100 if (ict and ict.signal == "LONG") else l_score
+            final_short = 100 if (ict and ict.signal == "SHORT") else s_score
+            
+            radar_data.append({
+                "symbol": sym_key,
+                "label": f"{sym_key} ({config['strategy']})",
+                "long_score": round(final_long, 1),
+                "short_score": round(final_short, 1),
+                "details": f"RSI: {rsi:.1f} | ADX: {adx:.1f}{ict_label}"
+            })
+        except:
+            continue
+            
+    return radar_data
 
     return radar_data
 
@@ -881,6 +932,73 @@ def manage_positions(state: dict):
     save_state(state)
 
 # ─────────────────────────────────────────────────────────────────────────────
+# FILTRO DE CORRELACIÓN USD
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Pares donde USD es la divisa BASE (LONG = comprar USD)
+USD_BASE_PAIRS  = {"USDJPY", "USDCAD", "USDCHF", "USDCNH"}
+# Pares donde USD es la divisa COTIZADA (LONG = vender USD)
+USD_QUOTE_PAIRS = {"EURUSD", "GBPUSD", "AUDUSD", "NZDUSD", "XAUUSD", "XAGUSD"}
+
+def get_usd_direction(symbol: str, trade_type: str) -> int:
+    """
+    Retorna la dirección neta del USD para este trade:
+      +1 = LONG USD (apostamos alcista en el dólar)
+      -1 = SHORT USD (apostamos bajista en el dólar)
+       0 = sin exposición USD (par exótico, ni USD base ni cotización)
+    """
+    base_sym = symbol.upper()[:6]  # Normalizar (eliminar sufijos .a, m...)
+    is_long  = (trade_type == mt5.POSITION_TYPE_BUY) if isinstance(trade_type, int) else (trade_type == "LONG")
+    
+    if any(base_sym.startswith(p[:6]) for p in USD_BASE_PAIRS):
+        return +1 if is_long else -1   # USDXXX LONG = comprar USD
+    if any(base_sym.startswith(p[:6]) for p in USD_QUOTE_PAIRS):
+        return -1 if is_long else +1   # XXXUSD LONG = vender USD
+    # Par sin USD (rareza)
+    return 0
+
+def get_net_usd_direction() -> int:
+    """
+    Calcula la dirección neta del USD a partir de las posiciones ABIERTAS
+    en MT5 (solo trades del bot, magic=123456).
+    Retorna:
+      +1 si hay más peso LONG USD que SHORT USD
+      -1 si hay más peso SHORT USD
+       0 si no hay posiciones abiertas con USD
+    """
+    positions = mt5.positions_get() or []
+    net = 0
+    for p in positions:
+        if p.magic != 123456:
+            continue
+        direction = get_usd_direction(p.symbol, p.type)
+        net += direction
+    if net > 0: return +1
+    if net < 0: return -1
+    return 0
+
+def would_conflict_usd(base_name: str, signal: str) -> bool:
+    """
+    Devuelve True si el nuevo trade crea conflicto de correlación USD.
+    Regla: si ya tenemos posiciones en dirección X del USD, NO abrir
+    un trade en dirección opuesta.
+    """
+    # Primero, calcular la nueva dirección propuesta
+    new_dir = get_usd_direction(base_name, signal)
+    if new_dir == 0:
+        return False  # Par sin USD: no aplica el filtro
+    
+    # Dirección agregada de posiciones ya abiertas
+    existing_dir = get_net_usd_direction()
+    if existing_dir == 0:
+        return False  # No hay posiciones abiertas: sin conflicto
+    
+    # Conflicto si queremos ir en dirección opuesta al neto actual
+    if new_dir != existing_dir:
+        return True
+    return False
+
+# ─────────────────────────────────────────────────────────────────────────────
 # LOOP
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -933,7 +1051,12 @@ def run_bot():
                     setup = get_signal_ensemble(symbol, base_name)
                     
                 if setup:
-                    execute_trade(symbol, base_name, setup, risk_pct, state)
+                    # 🔒 FILTRO DE CORRELACIÓN USD: Bloquear si el trade conflicta con posiciones abiertas
+                    if config.get("live") and would_conflict_usd(base_name, setup.signal):
+                        net_dir = "LONG" if get_net_usd_direction() > 0 else "SHORT"
+                        logger.warning(f"⛔ [{base_name}] Bloqueado: conflicto USD ({setup.signal} vs posición neta {net_dir} USD)")
+                    else:
+                        execute_trade(symbol, base_name, setup, risk_pct, state)
         
         # Reset diario
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")

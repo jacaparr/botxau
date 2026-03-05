@@ -13,17 +13,19 @@
     <style>
         :root {
             --bg: #020617;
-            --surface: rgba(15, 23, 42, 0.6);
-            --surface-bright: rgba(30, 41, 59, 0.7);
+            --surface: rgba(15, 23, 42, 0.4);
+            --surface-bright: rgba(30, 41, 59, 0.5);
             --accent: #facc15;
             /* Gold */
-            --accent-glow: rgba(250, 204, 21, 0.3);
+            --accent-glow: rgba(250, 204, 21, 0.4);
             --cyan: #38bdf8;
             --emerald: #10b981;
             --rose: #f43f5e;
             --text: #f8fafc;
             --text-dim: #94a3b8;
-            --border: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.05);
+            --premium-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            --glass-blur: blur(25px);
         }
 
         * {
@@ -35,14 +37,16 @@
         body {
             background: var(--bg);
             background-image:
-                radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 100% 100%, rgba(250, 204, 21, 0.05) 0%, transparent 50%);
+                radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(250, 204, 21, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, transparent 100%);
             color: var(--text);
             font-family: 'Outfit', sans-serif;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             padding: 20px;
+            transition: background 0.5s ease;
         }
 
         .stitch-container {
@@ -386,10 +390,10 @@
 
             <div class="side-card">
                 <div class="side-label">📈 Projections</div>
-                <div class="stat-row"><span class="stat-name">Year 1</span><span class="stat-val"
-                        style="color:var(--accent)">$14,363</span></div>
-                <div class="stat-row"><span class="stat-name">Year 3</span><span class="stat-val"
-                        style="color:var(--cyan)">$67,829</span></div>
+                <div class="stat-row"><span class="stat-name">Year 1 (Est)</span><span class="stat-val"
+                        style="color:var(--accent)">€34,600</span></div>
+                <div class="stat-row"><span class="stat-name">Target 10%</span><span class="stat-val"
+                        style="color:var(--cyan)">~3 months</span></div>
             </div>
 
             <div class="side-card">
@@ -433,42 +437,248 @@
                 </div>
             </div>
 
-            <div class="strat-grid">
-                <div class="chart-card">
-                    <div style="margin-bottom:15px; font-weight:700;">Live Signal Monitor</div>
-                    <div style="flex:1;"><canvas id="mainChart"></canvas></div>
+            <!-- 🚦 HEALTH MONITOR (Ported) -->
+            <style>
+                .health-panel {
+                    background: var(--surface);
+                    backdrop-filter: var(--glass-blur);
+                    border: 1px solid var(--border);
+                    border-radius: 24px;
+                    padding: 24px;
+                    display: grid;
+                    grid-template-columns: auto 1fr auto;
+                    gap: 24px;
+                    align-items: center;
+                    margin-bottom: 0px;
+                }
+
+                .semaphore {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    align-items: center;
+                }
+
+                .sem-light {
+                    width: 18px;
+                    height: 18px;
+                    border-radius: 50%;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                }
+
+                .active-green {
+                    background: #10b981;
+                    box-shadow: 0 0 15px #10b981;
+                }
+
+                .active-yellow {
+                    background: #facc15;
+                    box-shadow: 0 0 15px #facc15;
+                }
+
+                .active-red {
+                    background: #f43f5e;
+                    box-shadow: 0 0 15px #f43f5e;
+                }
+
+                .health-bars {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+
+                .h-track {
+                    height: 8px;
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: 4px;
+                    overflow: hidden;
+                }
+
+                .h-fill {
+                    height: 100%;
+                    transition: 0.8s;
+                }
+            </style>
+            <div class="health-panel" id="health-panel">
+                <div class="semaphore">
+                    <div class="sem-light" id="sem-red"></div>
+                    <div class="sem-light" id="sem-yellow"></div>
+                    <div class="sem-light active-green" id="sem-green"></div>
                 </div>
-                <div class="radar-card">
-                    <div style="margin-bottom:20px; font-weight:700;">Strategy Radar</div>
-                    <div class="gauge-box">
-                        <div class="gauge-visual"><svg class="gauge-svg">
-                                <circle class="gauge-bg" cx="35" cy="35" r="31"></circle>
-                                <circle id="gauge-gold" class="gauge-fill" cx="35" cy="35" r="31"></circle>
-                            </svg><span class="gauge-pct" id="gold-pct">0%</span></div>
-                        <div>
-                            <div style="font-weight:700;">Oro Force</div>
-                            <div id="gold-details" style="font-size:0.7rem; color:var(--text-dim);">---</div>
-                        </div>
+                <div class="health-bars">
+                    <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-dim);">
+                        <span>DAILY DD</span><span id="hb-daily-val">0.00%</span>
                     </div>
-                    <div class="gauge-box">
-                        <div class="gauge-visual"><svg class="gauge-svg">
-                                <circle class="gauge-bg" cx="35" cy="35" r="31"></circle>
-                                <circle id="gauge-short" class="gauge-fill" style="stroke:var(--rose)" cx="35" cy="35"
-                                    r="31"></circle>
-                            </svg><span class="gauge-pct" id="short-pct" style="color:var(--rose)">0%</span></div>
-                        <div>
-                            <div style="font-weight:700; color:var(--rose);">Short Depth</div>
-                            <div style="font-size:0.7rem; color:var(--text-dim);">Trend pressure</div>
-                        </div>
+                    <div class="h-track">
+                        <div class="h-fill" id="hb-daily-fill" style="width:0%; background:var(--emerald);"></div>
                     </div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-dim);">
+                        <span>TOTAL DD</span><span id="hb-total-val">0.00%</span>
+                    </div>
+                    <div class="h-track">
+                        <div class="h-fill" id="hb-total-fill" style="width:0%; background:var(--emerald);"></div>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div id="health-label" style="font-weight:800; color:var(--emerald);">SEGURO</div>
+                    <div id="health-risk" style="font-family:'JetBrains Mono'; font-size:1.2rem;">0.45%</div>
                 </div>
             </div>
 
-            <footer class="footer">
-                <div>&copy; 2026 STITCH REMOTE</div>
-                <div id="last-upd">Last check: --:--:--</div>
-            </footer>
-        </main>
+    </div>
+
+    <!-- 🤖 DUAL BOT STATUS -->
+    <style>
+        .dual-bot-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 0;
+        }
+
+        .bot-card {
+            background: var(--surface);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: border-color 0.4s;
+        }
+
+        .bot-card.online {
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        .bot-card.offline {
+            border-color: rgba(244, 63, 94, 0.3);
+        }
+
+        .bot-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .bot-instance-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .badge-vps {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--cyan);
+        }
+
+        .badge-local {
+            background: rgba(250, 204, 21, 0.15);
+            color: var(--accent);
+        }
+
+        .bot-status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .dot-online {
+            background: var(--emerald);
+            box-shadow: 0 0 8px var(--emerald);
+        }
+
+        .dot-offline {
+            background: var(--rose);
+        }
+
+        .bot-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .bot-stat {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 8px 12px;
+        }
+
+        .bot-stat-label {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .bot-stat-val {
+            font-family: 'JetBrains Mono';
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        .bot-offline-msg {
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            padding: 12px 0;
+        }
+
+        @media (max-width: 600px) {
+            .dual-bot-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <div class="dual-bot-row">
+        <div class="bot-card" id="card-vps">
+            <div class="bot-card-header">
+                <div>
+                    <span class="bot-status-dot dot-offline" id="dot-vps"></span>
+                    <span style="font-weight:700;">Bot Servidor</span>
+                </div>
+                <span class="bot-instance-badge badge-vps">🌐 VPS</span>
+            </div>
+            <div id="vps-stats">
+                <div class="bot-offline-msg">⏳ Conectando...</div>
+            </div>
+        </div>
+        <div class="bot-card" id="card-local">
+            <div class="bot-card-header">
+                <div>
+                    <span class="bot-status-dot dot-offline" id="dot-local"></span>
+                    <span style="font-weight:700;">Bot Local</span>
+                </div>
+                <span class="bot-instance-badge badge-local">💻 LOCAL</span>
+            </div>
+            <div id="local-stats">
+                <div class="bot-offline-msg">⏳ Conectando...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="strat-grid">
+        <div class="chart-card">
+            <div style="margin-bottom:15px; font-weight:700;">Live Signal Monitor</div>
+            <div style="flex:1;"><canvas id="mainChart"></canvas></div>
+        </div>
+        <div class="radar-card" id="radar-container">
+            <div style="margin-bottom:20px; font-weight:700;">Strategy Basket Radar</div>
+            <!-- Gauges will be injected here -->
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div>&copy; 2026 STITCH REMOTE</div>
+        <div id="last-upd">Last check: --:--:--</div>
+    </footer>
+    </main>
     </div>
 
     <script>
@@ -516,30 +726,74 @@
                 document.getElementById('status-text').style.color = data.is_running ? 'var(--emerald)' : 'var(--text-dim)';
 
                 if (data.prop_firm) {
-                    const ddColor = data.prop_firm.daily_dd > 2 ? 'var(--rose)' : 'var(--text)';
-                    document.getElementById('sb-daily-dd').innerText = data.prop_firm.daily_dd.toFixed(2) + '%';
-                    document.getElementById('sb-daily-dd').style.color = ddColor;
-                    const tddColor = data.prop_firm.total_dd > 4 ? 'var(--rose)' : 'var(--text)';
-                    document.getElementById('sb-total-dd').innerText = data.prop_firm.total_dd.toFixed(2) + '%';
-                    document.getElementById('sb-total-dd').style.color = tddColor;
-                }
+                    const pf = data.prop_firm;
+                    const currency = data.account?.currency === 'EUR' ? '€' : '$';
+                    const dailyPct = pf.daily_dd;
+                    const totalPct = pf.total_dd;
 
-                if (data.account) {
-                    document.getElementById('kpi-equity').innerText = '$' + (data.account.equity || data.account.balance).toLocaleString();
+                    document.getElementById('sb-daily-dd').innerText = dailyPct.toFixed(2) + '%';
+                    document.getElementById('sb-total-dd').innerText = totalPct.toFixed(2) + '%';
+
+                    // Update Health Monitor
+                    const hbDaily = document.getElementById('hb-daily-fill');
+                    const hbTotal = document.getElementById('hb-total-fill');
+                    hbDaily.style.width = Math.min((dailyPct / 4) * 100, 100) + '%';
+                    hbTotal.style.width = Math.min((totalPct / 8) * 100, 100) + '%';
+                    document.getElementById('hb-daily-val').innerText = dailyPct.toFixed(2) + '%';
+                    document.getElementById('hb-total-val').innerText = totalPct.toFixed(2) + '%';
+
+                    const isDanger = dailyPct > 3.5 || totalPct > 7.5;
+                    const isCaution = dailyPct > 2.0 || totalPct > 4.0;
+
+                    const semR = document.getElementById('sem-red'), semY = document.getElementById('sem-yellow'), semG = document.getElementById('sem-green');
+                    const hLabel = document.getElementById('health-label');
+                    semR.className = 'sem-light'; semY.className = 'sem-light'; semG.className = 'sem-light';
+
+                    if (isDanger) {
+                        semR.className = 'sem-light active-red'; hLabel.innerText = 'PELIGRO'; hLabel.style.color = 'var(--rose)';
+                        hbDaily.style.background = 'var(--rose)'; hbTotal.style.background = 'var(--rose)';
+                    } else if (isCaution) {
+                        semY.className = 'sem-light active-yellow'; hLabel.innerText = 'PRECAUCIÓN'; hLabel.style.color = 'var(--accent)';
+                        hbDaily.style.background = 'var(--accent)'; hbTotal.style.background = 'var(--accent)';
+                    } else {
+                        semG.className = 'sem-light active-green'; hLabel.innerText = 'SEGURO'; hLabel.style.color = 'var(--emerald)';
+                        hbDaily.style.background = 'var(--emerald)'; hbTotal.style.background = 'var(--emerald)';
+                    }
+
+                    if (data.account) {
+                        document.getElementById('kpi-equity').innerText = currency + (data.account.equity || data.account.balance).toLocaleString();
+                        document.getElementById('kpi-daily').innerText = currency + (data.pnl_today || 0).toFixed(2);
+                    }
                 }
-                document.getElementById('kpi-daily').innerText = '$' + (data.pnl_today || 0).toFixed(2);
                 document.getElementById('kpi-test').innerText = (data.virtual_pnl_today || 0).toFixed(1) + 'R';
 
                 if (data.radar) {
-                    const g = data.radar.find(r => r.symbol === 'XAUUSD');
-                    if (g) {
-                        document.getElementById('gauge-gold').style.strokeDashoffset = 195 - (195 * g.long_score / 100);
-                        document.getElementById('gold-pct').innerText = Math.round(g.long_score) + '%';
-                        document.getElementById('gauge-short').style.strokeDashoffset = 195 - (195 * g.short_score / 100);
-                        document.getElementById('short-pct').innerText = Math.round(g.short_score) + '%';
-                        document.getElementById('gold-details').innerText = g.details;
+                    const container = document.getElementById('radar-container');
+                    // Solo renderizamos si hay cambios o la primera vez
+                    if (data.radar.length > 0) {
+                        const radarHtml = `
+                            <div style="margin-bottom:20px; font-weight:700;">Strategy Basket Radar</div>
+                            ${data.radar.slice(0, 4).map(r => `
+                                <div class="gauge-box">
+                                    <div class="gauge-visual">
+                                        <svg class="gauge-svg">
+                                            <circle class="gauge-bg" cx="35" cy="35" r="31"></circle>
+                                            <circle class="gauge-fill" style="stroke-dashoffset: ${195 - (195 * Math.max(r.long_score, r.short_score) / 100)}; stroke: ${r.long_score >= r.short_score ? 'var(--emerald)' : 'var(--rose)'}" cx="35" cy="35" r="31"></circle>
+                                        </svg>
+                                        <span class="gauge-pct" style="color: ${r.long_score >= r.short_score ? 'var(--emerald)' : 'var(--rose)'}">${Math.round(Math.max(r.long_score, r.short_score))}%</span>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight:700;">${r.symbol}</div>
+                                        <div style="font-size:0.7rem; color:var(--text-dim);">${r.details}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        `;
+                        container.innerHTML = radarHtml;
 
-                        const score = Math.max(g.long_score, g.short_score);
+                        // Chart update using the top symbol
+                        const top = data.radar[0];
+                        const score = Math.max(top.long_score, top.short_score);
                         chart.data.datasets[0].data.shift();
                         chart.data.datasets[0].data.push(score);
                         chart.update('none');
@@ -567,10 +821,63 @@
             } catch (e) { alert('Error: ' + e.message); }
         }
 
+        function renderBotCard(containerId, dotId, cardId, data) {
+            const dot = document.getElementById(dotId);
+            const card = document.getElementById(cardId);
+            const box = document.getElementById(containerId);
+            if (!data || !data.reachable) {
+                dot.className = 'bot-status-dot dot-offline';
+                card.className = 'bot-card offline';
+                const reason = (data && data.reason) ? data.reason : 'No disponible';
+                box.innerHTML = `<div class="bot-offline-msg">🔴 Sin conexión<br><small>${reason.substring(0, 60)}</small></div>`;
+                return;
+            }
+            dot.className = 'bot-status-dot dot-online';
+            card.className = 'bot-card online';
+            const cur = data.account?.currency === 'EUR' ? '€' : '$';
+            const eq = data.account?.equity ?? data.account?.balance ?? 0;
+            const pnl = data.pnl_today ?? 0;
+            const trades = data.trades_today ?? 0;
+            const risk = data.prop_firm?.current_risk ?? '---';
+            const pnlColor = pnl >= 0 ? 'var(--emerald)' : 'var(--rose)';
+            box.innerHTML = `
+                <div class="bot-stats">
+                    <div class="bot-stat">
+                        <div class="bot-stat-label">Equity</div>
+                        <div class="bot-stat-val">${cur}${Number(eq).toLocaleString()}</div>
+                    </div>
+                    <div class="bot-stat">
+                        <div class="bot-stat-label">PnL Hoy</div>
+                        <div class="bot-stat-val" style="color:${pnlColor}">${pnl >= 0 ? '+' : ''}${cur}${Number(pnl).toFixed(2)}</div>
+                    </div>
+                    <div class="bot-stat">
+                        <div class="bot-stat-label">Trades Hoy</div>
+                        <div class="bot-stat-val">${trades}</div>
+                    </div>
+                    <div class="bot-stat">
+                        <div class="bot-stat-label">Riesgo</div>
+                        <div class="bot-stat-val">${risk}%</div>
+                    </div>
+                </div>`;
+        }
+
+        async function updateBots() {
+            try {
+                const r = await fetch(API + '/api/all-status');
+                const d = await r.json();
+                renderBotCard('vps-stats', 'dot-vps', 'card-vps', d.vps);
+                renderBotCard('local-stats', 'dot-local', 'card-local', d.local);
+            } catch (e) {
+                console.warn('Dual bot fetch error:', e.message);
+            }
+        }
+
         checkHealth();
         setInterval(update, 5000);
         setInterval(checkHealth, 30000);
+        setInterval(updateBots, 30000);
         update();
+        updateBots();
     </script>
 </body>
 

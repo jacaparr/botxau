@@ -1,0 +1,422 @@
+[
+  {
+    "ticket": 55216593159,
+    "time_close": "2026-02-26 22:41:34",
+    "symbol": "XAUUSD",
+    "direction": "SELL",
+    "volume": 0.32,
+    "price_close": 5186.32,
+    "pnl": 278.4,
+    "comment": "EOD-CLOSE"
+  },
+  {
+    "ticket": 55230178135,
+    "time_close": "2026-02-27 19:00:53",
+    "symbol": "XAUUSD",
+    "direction": "SELL",
+    "volume": 0.32,
+    "price_close": 5236.16,
+    "pnl": 1494.19,
+    "comment": "EOD-CLOSE"
+  },
+  {
+    "ticket": 55273935193,
+    "time_close": "2026-03-03 14:31:27",
+    "symbol": "XAUUSD",
+    "direction": "BUY",
+    "volume": 0.55,
+    "price_close": 5106.97,
+    "pnl": 7970.95,
+    "comment": "[tp 5106.97]"
+  },
+  {
+    "ticket": 55274570534,
+    "time_close": "2026-03-03 14:46:27",
+    "symbol": "EURUSD",
+    "direction": "BUY",
+    "volume": 1.24,
+    "price_close": 1.16,
+    "pnl": -179.59,
+    "comment": "[sl 1.16000]"
+  },
+  {
+    "ticket": 55274648614,
+    "time_close": "2026-03-03 14:48:53",
+    "symbol": "EURUSD",
+    "direction": "BUY",
+    "volume": 1.34,
+    "price_close": 1.16,
+    "pnl": -12.71,
+    "comment": "[sl 1.16000]"
+  },
+  {
+    "ticket": 55274812868,
+    "time_close": "2026-03-03 14:54:31",
+    "symbol": "GBPUSD",
+    "direction": "BUY",
+    "volume": 0.95,
+    "price_close": 1.33,
+    "pnl": -298.86,
+    "comment": "[sl 1.33000]"
+  },
+  {
+    "ticket": 55275114249,
+    "time_close": "2026-03-03 15:05:35",
+    "symbol": "USDCAD",
+    "direction": "SELL",
+    "volume": 2.23,
+    "price_close": 1.37,
+    "pnl": -280.88,
+    "comment": "[sl 1.37000]"
+  },
+  {
+    "ticket": 55275260273,
+    "time_close": "2026-03-03 15:09:52",
+    "symbol": "EURUSD",
+    "direction": "BUY",
+    "volume": 1.31,
+    "price_close": 1.16,
+    "pnl": -31.62,
+    "comment": "[sl 1.16000]"
+  },
+  {
+    "ticket": 55275504121,
+    "time_close": "2026-03-03 15:17:40",
+    "symbol": "EURUSD",
+    "direction": "BUY",
+    "volume": 0.14,
+    "price_close": 1.16,
+    "pnl": -3.38,
+    "comment": "[sl 1.16000]"
+  },
+  {
+    "ticket": 55276460996,
+    "time_close": "2026-03-03 15:55:52",
+    "symbol": "XAUUSD",
+    "direction": "BUY",
+    "volume": 0.41,
+    "price_close": 5214.88,
+    "pnl": -4240.65,
+    "comment": "[sl 5214.88]"
+  },
+  {
+    "ticket": 55282402729,
+    "time_close": "2026-03-03 18:59:58",
+    "symbol": "XAGUSD",
+    "direction": "BUY",
+    "volume": 0.16,
+    "price_close": 82.569,
+    "pnl": -1141.31,
+    "comment": "EOD-CLOSE"
+  },
+  {
+    "ticket": 55282402910,
+    "time_close": "2026-03-03 18:59:59",
+    "symbol": "XAUUSD",
+    "direction": "BUY",
+    "volume": 0.04,
+    "price_close": 5095.21,
+    "pnl": 412.34,
+    "comment": "EOD-CLOSE"
+  },
+  {
+    "ticket": 55293037877,
+    "time_close": "2026-03-04 07:06:05",
+    "symbol": "USDJPY",
+    "direction": "SELL",
+    "volume": 1.38,
+    "price_close": 157.32,
+    "pnl": -461.71,
+    "comment": "[sl 157.320]"
+  },
+  {
+    "ticket": 55295377205,
+    "time_close": "2026-03-04 10:07:13",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 1.28,
+    "price_close": 0.78,
+    "pnl": -1081.85,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55298259539,
+    "time_close": "2026-03-04 13:09:24",
+    "symbol": "GBPUSD",
+    "direction": "BUY",
+    "volume": 0.99,
+    "price_close": 1.34,
+    "pnl": -878.21,
+    "comment": "[sl 1.34000]"
+  },
+  {
+    "ticket": 55310622445,
+    "time_close": "2026-03-04 23:22:53",
+    "symbol": "XAGUSD",
+    "direction": "BUY",
+    "volume": 0.02,
+    "price_close": 83.381,
+    "pnl": 203.02,
+    "comment": "EOD-CLOSE"
+  },
+  {
+    "ticket": 55310622577,
+    "time_close": "2026-03-04 23:22:53",
+    "symbol": "XAUUSD",
+    "direction": "BUY",
+    "volume": 0.07,
+    "price_close": 5132.58,
+    "pnl": 127.79,
+    "comment": "EOD-CLOSE"
+  },
+  {
+    "ticket": 55320287021,
+    "time_close": "2026-03-05 13:50:48",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.14,
+    "price_close": 0.78,
+    "pnl": -2.94,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55320287023,
+    "time_close": "2026-03-05 13:50:48",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.14,
+    "price_close": 0.78,
+    "pnl": -2.94,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55320287024,
+    "time_close": "2026-03-05 13:50:48",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.14,
+    "price_close": 0.78,
+    "pnl": -2.78,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55320314117,
+    "time_close": "2026-03-05 13:52:22",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.14,
+    "price_close": 0.78,
+    "pnl": -2.63,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55320314118,
+    "time_close": "2026-03-05 13:52:22",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.14,
+    "price_close": 0.78,
+    "pnl": -2.63,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55320341741,
+    "time_close": "2026-03-05 13:54:45",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.14,
+    "price_close": 0.78,
+    "pnl": -2.63,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55320398241,
+    "time_close": "2026-03-05 13:58:29",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.14,
+    "price_close": 0.78,
+    "pnl": -2.47,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55320398242,
+    "time_close": "2026-03-05 13:58:29",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.14,
+    "price_close": 0.78,
+    "pnl": -2.47,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55320450336,
+    "time_close": "2026-03-05 14:02:26",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.14,
+    "price_close": 0.78,
+    "pnl": -3.71,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55320688659,
+    "time_close": "2026-03-05 14:20:39",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.13,
+    "price_close": 0.78,
+    "pnl": -1.87,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55320718671,
+    "time_close": "2026-03-05 14:23:25",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.13,
+    "price_close": 0.78,
+    "pnl": -2.87,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55320718672,
+    "time_close": "2026-03-05 14:23:25",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.13,
+    "price_close": 0.78,
+    "pnl": -2.87,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55320752833,
+    "time_close": "2026-03-05 14:26:41",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.13,
+    "price_close": 0.78,
+    "pnl": -2.44,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55320752834,
+    "time_close": "2026-03-05 14:26:41",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.13,
+    "price_close": 0.78,
+    "pnl": -2.44,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55321059958,
+    "time_close": "2026-03-05 14:50:32",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.13,
+    "price_close": 0.78,
+    "pnl": -2.73,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55321059959,
+    "time_close": "2026-03-05 14:50:32",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.13,
+    "price_close": 0.78,
+    "pnl": -2.73,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55321302361,
+    "time_close": "2026-03-05 15:07:03",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.13,
+    "price_close": 0.78,
+    "pnl": -3.45,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55321450708,
+    "time_close": "2026-03-05 15:16:06",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.15,
+    "price_close": 0.78,
+    "pnl": -6.79,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55322067284,
+    "time_close": "2026-03-05 15:55:31",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.14,
+    "price_close": 0.78,
+    "pnl": -9.12,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55322067286,
+    "time_close": "2026-03-05 15:55:31",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.14,
+    "price_close": 0.78,
+    "pnl": -9.12,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55324794695,
+    "time_close": "2026-03-05 17:33:15",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.13,
+    "price_close": 0.78,
+    "pnl": -30.73,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55325714736,
+    "time_close": "2026-03-05 18:04:10",
+    "symbol": "USDCHF",
+    "direction": "SELL",
+    "volume": 0.13,
+    "price_close": 0.78,
+    "pnl": -7.75,
+    "comment": "[sl 0.78000]"
+  },
+  {
+    "ticket": 55327297776,
+    "time_close": "2026-03-05 19:00:34",
+    "symbol": "XAGUSD",
+    "direction": "BUY",
+    "volume": 0.04,
+    "price_close": 82.392,
+    "pnl": 322.21,
+    "comment": "EOD-CLOSE"
+  },
+  {
+    "ticket": 55327299815,
+    "time_close": "2026-03-05 19:00:38",
+    "symbol": "XAGUSD",
+    "direction": "BUY",
+    "volume": 0.04,
+    "price_close": 82.371,
+    "pnl": 325.86,
+    "comment": "EOD-CLOSE"
+  },
+  {
+    "ticket": 55327299912,
+    "time_close": "2026-03-05 19:00:38",
+    "symbol": "XAUUSD",
+    "direction": "BUY",
+    "volume": 0.08,
+    "price_close": 5103.96,
+    "pnl": 112.73,
+    "comment": "EOD-CLOSE"
+  }
+]

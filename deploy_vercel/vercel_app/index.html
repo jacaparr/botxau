@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ STITCH | Remote Viewer v5.2.2</title>
+    <title>⚡ STITCH | Remote Viewer v5.2.1</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
         rel="stylesheet">
@@ -526,161 +526,22 @@
                 </div>
             </div>
 
-    </div>
-
-    <!-- 🤖 DUAL BOT STATUS -->
-    <style>
-        .dual-bot-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 0;
-        }
-
-        .bot-card {
-            background: var(--surface);
-            backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            transition: border-color 0.4s;
-        }
-
-        .bot-card.online {
-            border-color: rgba(16, 185, 129, 0.4);
-        }
-
-        .bot-card.offline {
-            border-color: rgba(244, 63, 94, 0.3);
-        }
-
-        .bot-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .bot-instance-badge {
-            font-size: 0.7rem;
-            font-weight: 700;
-            padding: 3px 10px;
-            border-radius: 20px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .badge-vps {
-            background: rgba(56, 189, 248, 0.15);
-            color: var(--cyan);
-        }
-
-        .badge-local {
-            background: rgba(250, 204, 21, 0.15);
-            color: var(--accent);
-        }
-
-        .bot-status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 6px;
-        }
-
-        .dot-online {
-            background: var(--emerald);
-            box-shadow: 0 0 8px var(--emerald);
-        }
-
-        .dot-offline {
-            background: var(--rose);
-        }
-
-        .bot-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
-        }
-
-        .bot-stat {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-            padding: 8px 12px;
-        }
-
-        .bot-stat-label {
-            font-size: 0.65rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-        }
-
-        .bot-stat-val {
-            font-family: 'JetBrains Mono';
-            font-size: 0.95rem;
-            font-weight: 700;
-        }
-
-        .bot-offline-msg {
-            text-align: center;
-            color: var(--text-dim);
-            font-size: 0.8rem;
-            padding: 12px 0;
-        }
-
-        @media (max-width: 600px) {
-            .dual-bot-row {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-    <div class="dual-bot-row">
-        <div class="bot-card" id="card-vps">
-            <div class="bot-card-header">
-                <div>
-                    <span class="bot-status-dot dot-offline" id="dot-vps"></span>
-                    <span style="font-weight:700;">Bot Servidor</span>
-                    <span style="font-size:0.7rem;color:var(--text-dim);margin-left:6px;">Capital: $25K</span>
+            <div class="strat-grid">
+                <div class="chart-card">
+                    <div style="margin-bottom:15px; font-weight:700;">Live Signal Monitor</div>
+                    <div style="flex:1;"><canvas id="mainChart"></canvas></div>
                 </div>
-                <span class="bot-instance-badge badge-vps">🌐 VPS</span>
-            </div>
-            <div id="vps-stats">
-                <div class="bot-offline-msg">⏳ Conectando...</div>
-            </div>
-        </div>
-        <div class="bot-card" id="card-local">
-            <div class="bot-card-header">
-                <div>
-                    <span class="bot-status-dot dot-offline" id="dot-local"></span>
-                    <span style="font-weight:700;">Bot Local</span>
-                    <span style="font-size:0.7rem;color:var(--text-dim);margin-left:6px;">Capital: $100K</span>
+                <div class="radar-card" id="radar-container">
+                    <div style="margin-bottom:20px; font-weight:700;">Strategy Basket Radar</div>
+                    <!-- Gauges will be injected here -->
                 </div>
-                <span class="bot-instance-badge badge-local">💻 LOCAL</span>
             </div>
-            <div id="local-stats">
-                <div class="bot-offline-msg">⏳ Conectando...</div>
-            </div>
-        </div>
-    </div>
 
-    <div class="strat-grid">
-        <div class="chart-card">
-            <div style="margin-bottom:15px; font-weight:700;">Live Signal Monitor</div>
-            <div style="flex:1;"><canvas id="mainChart"></canvas></div>
-        </div>
-        <div class="radar-card" id="radar-container">
-            <div style="margin-bottom:20px; font-weight:700;">Strategy Basket Radar</div>
-            <!-- Gauges will be injected here -->
-        </div>
-    </div>
-
-    <footer class="footer">
-        <div>&copy; 2026 STITCH REMOTE</div>
-        <div id="last-upd">Last check: --:--:--</div>
-    </footer>
-    </main>
+            <footer class="footer">
+                <div>&copy; 2026 STITCH REMOTE</div>
+                <div id="last-upd">Last check: --:--:--</div>
+            </footer>
+        </main>
     </div>
 
     <script>
@@ -823,83 +684,10 @@
             } catch (e) { alert('Error: ' + e.message); }
         }
 
-        function renderBotCard(containerId, dotId, cardId, data) {
-            const dot = document.getElementById(dotId);
-            const card = document.getElementById(cardId);
-            const box = document.getElementById(containerId);
-            if (!data || !data.reachable) {
-                dot.className = 'bot-status-dot dot-offline';
-                card.className = 'bot-card offline';
-                const reason = (data && data.reason) ? data.reason : 'No disponible';
-                box.innerHTML = `<div class="bot-offline-msg">🔴 Sin conexión<br><small style="color:var(--text-dim)">${reason.substring(0, 80)}</small></div>`;
-                return;
-            }
-            dot.className = 'bot-status-dot dot-online';
-            card.className = 'bot-card online';
-            const cur = data.account?.currency === 'EUR' ? '€' : '$';
-            const eq  = data.account?.equity ?? data.account?.balance ?? 0;
-            const bal = data.account?.balance ?? 0;
-            const pnl = data.pnl_today ?? 0;
-            const trades = data.trades_today ?? 0;
-            const risk = data.prop_firm?.current_risk ?? '---';
-            const dailyDD = data.prop_firm?.daily_dd ?? 0;
-            const totalDD = data.prop_firm?.total_dd ?? 0;
-            const startBal = data.starting_balance ?? 0;
-            const totalPnl = startBal > 0 ? (bal - startBal) : 0;
-            const totalPct = startBal > 0 ? ((bal / startBal - 1) * 100) : 0;
-            const pnlColor  = pnl >= 0 ? 'var(--emerald)' : 'var(--rose)';
-            const tpnlColor = totalPnl >= 0 ? 'var(--emerald)' : 'var(--rose)';
-            const ddColor   = dailyDD > 3 ? 'var(--rose)' : dailyDD > 1.5 ? 'var(--accent)' : 'var(--emerald)';
-            box.innerHTML = `
-                <div class="bot-stats">
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">Equity</div>
-                        <div class="bot-stat-val">${cur}${Number(eq).toLocaleString()}</div>
-                    </div>
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">PnL Hoy</div>
-                        <div class="bot-stat-val" style="color:${pnlColor}">${pnl >= 0 ? '+' : ''}${cur}${Number(pnl).toFixed(2)}</div>
-                    </div>
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">PnL Total</div>
-                        <div class="bot-stat-val" style="color:${tpnlColor}">${totalPnl >= 0 ? '+' : ''}${cur}${Number(totalPnl).toLocaleString()} <span style="font-size:0.7rem">(${totalPct >= 0 ? '+' : ''}${totalPct.toFixed(1)}%)</span></div>
-                    </div>
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">Trades Hoy</div>
-                        <div class="bot-stat-val">${trades}</div>
-                    </div>
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">DD Diario</div>
-                        <div class="bot-stat-val" style="color:${ddColor}">${Number(dailyDD).toFixed(2)}%</div>
-                    </div>
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">DD Total</div>
-                        <div class="bot-stat-val" style="color:${totalDD > 6 ? 'var(--rose)' : 'var(--text)'}">${Number(totalDD).toFixed(2)}%</div>
-                    </div>
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">Riesgo</div>
-                        <div class="bot-stat-val">${risk}%</div>
-                    </div>
-                </div>`;
-        }
-
-        async function updateBots() {
-            try {
-                const r = await fetch(API + '/api/all-status');
-                const d = await r.json();
-                renderBotCard('vps-stats', 'dot-vps', 'card-vps', d.vps);
-                renderBotCard('local-stats', 'dot-local', 'card-local', d.local);
-            } catch (e) {
-                console.warn('Dual bot fetch error:', e.message);
-            }
-        }
-
         checkHealth();
         setInterval(update, 5000);
         setInterval(checkHealth, 30000);
-        setInterval(updateBots, 30000);
         update();
-        updateBots();
     </script>
 </body>
 

@@ -18,8 +18,12 @@ import psutil
 import threading
 import sys
 from datetime import datetime, timezone, timedelta
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_cors import CORS
+try:
+    import requests as _requests
+except ImportError:
+    _requests = None
 
 # Forzar codificación UTF-8 para evitar errores en terminales Windows
 if sys.stdout.encoding.lower() != 'utf-8':
@@ -30,6 +34,9 @@ if sys.stdout.encoding.lower() != 'utf-8':
 
 app = Flask(__name__)
 CORS(app)
+
+# ─── VPS externo (para dual-bot view) ────────────────────────────────────────
+VPS_URL = "http://37.60.247.231:5000"   # URL del bot VPS
 
 # Configuración
 STATE_FILE = "bot_state_mt5_v5.json"
@@ -173,6 +180,12 @@ def auto_scheduler_loop():
 
 @app.route("/")
 def index():
+    """Sirve el STITCH Remote Viewer v5.2.2 (dual-bot)."""
+    return send_from_directory(os.path.dirname(os.path.abspath(__file__)), "index.html")
+
+@app.route("/full")
+def index_full():
+    """Dashboard completo single-bot (legacy)."""
     return render_template("index_mt5.html")
 
 @app.route("/api/status")
@@ -197,6 +210,62 @@ def api_status():
         "monthly_target": 1029
     }
     return jsonify(data)
+
+@app.route("/api/health")
+def api_health():
+    """Comprueba conectividad con el VPS remoto."""
+    vps_ok = False
+    reason = "requests no instalado"
+    if _requests:
+        try:
+            r = _requests.get(VPS_URL + "/api/status", timeout=3)
+            vps_ok = r.status_code == 200
+            reason = ""
+        except Exception as e:
+            reason = str(e)[:80]
+    return jsonify({
+        "vps_reachable": vps_ok,
+        "local_ok": True,
+        "vps_url": VPS_URL,
+        "reason": reason,
+    })
+
+@app.route("/api/all-status")
+def api_all_status():
+    """Estado de AMBOS bots. Local=$100k, VPS=$25k."""
+    # ── Bot LOCAL ($100k) ─────────────────────────────────────────────────────
+    local = read_state()
+    local["reachable"]       = True
+    local["trades_today"]    = local.get("trades_today", 0)
+    local["pnl_today"]       = local.get("pnl_today", 0.0)
+    local["prop_firm"]       = local.get("prop_firm", {})
+    local["account"]         = local.get("account", {})
+    local["starting_balance"] = local.get("prop_starting_balance", 100000)
+    local["instance_label"]  = "LOCAL $100K"
+
+    # ── Bot VPS ($25k) — intentar conexión ───────────────────────────────────
+    vps = None
+    if _requests:
+        try:
+            r = _requests.get(VPS_URL + "/api/status", timeout=2)
+            if r.status_code == 200:
+                vps = r.json()
+                vps["reachable"]       = True
+                vps["starting_balance"] = vps.get("prop_starting_balance", 25000)
+                vps["instance_label"]  = "VPS $25K"
+        except Exception:
+            pass
+
+    if vps is None:
+        # VPS no responde: mostrar offline con datos mínimos
+        vps = {
+            "reachable":       False,
+            "instance_label":  "VPS $25K",
+            "starting_balance": 25000,
+            "reason":          "Puerto 5000 del VPS no accesible. Abre el puerto en el firewall del VPS.",
+        }
+
+    return jsonify({"vps": vps, "local": local})
 
 @app.route("/api/schedule")
 def api_schedule():

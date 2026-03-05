@@ -13,18 +13,20 @@
     <style>
         :root {
             --bg: #020617;
-            --surface: rgba(15, 23, 42, 0.6);
-            --surface-bright: rgba(30, 41, 59, 0.7);
+            --surface: rgba(15, 23, 42, 0.4);
+            --surface-bright: rgba(30, 41, 59, 0.5);
             --accent: #facc15;
             /* Gold */
-            --accent-glow: rgba(250, 204, 21, 0.3);
+            --accent-glow: rgba(250, 204, 21, 0.4);
             --cyan: #38bdf8;
             --emerald: #10b981;
             --rose: #f43f5e;
             --text: #f8fafc;
             --text-dim: #94a3b8;
-            --border: rgba(255, 255, 255, 0.08);
-            --stitch-border: 2px solid var(--border);
+            --border: rgba(255, 255, 255, 0.05);
+            --stitch-border: 1px solid var(--border);
+            --premium-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            --glass-blur: blur(25px);
         }
 
         * {
@@ -36,8 +38,9 @@
         body {
             background: var(--bg);
             background-image:
-                radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 100% 100%, rgba(250, 204, 21, 0.05) 0%, transparent 50%);
+                radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(250, 204, 21, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, transparent 100%);
             color: var(--text);
             font-family: 'Outfit', sans-serif;
             min-height: 100vh;
@@ -45,6 +48,7 @@
             flex-direction: column;
             overflow-x: hidden;
             padding: 24px;
+            transition: background 0.5s ease;
         }
 
         .stitch-container {
@@ -66,13 +70,13 @@
         .brand {
             padding: 24px;
             background: var(--surface);
-            backdrop-filter: blur(20px);
+            backdrop-filter: var(--glass-blur);
             border: var(--border) 1px solid;
             border-radius: 20px;
             display: flex;
             align-items: center;
             gap: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            box-shadow: var(--premium-shadow);
         }
 
         .brand-logo {
@@ -96,13 +100,19 @@
 
         .side-card {
             background: var(--surface);
-            backdrop-filter: blur(20px);
+            backdrop-filter: var(--glass-blur);
             border: var(--border) 1px solid;
             border-radius: 20px;
             padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 16px;
+            transition: 0.3s ease;
+        }
+
+        .side-card:hover {
+            background: var(--surface-bright);
+            transform: translateY(-2px);
         }
 
         .side-label {
@@ -239,18 +249,20 @@
 
         .kpi-card {
             background: var(--surface);
-            backdrop-filter: blur(20px);
+            backdrop-filter: var(--glass-blur);
             border: var(--border) 1px solid;
             border-radius: 24px;
             padding: 28px;
             position: relative;
             overflow: hidden;
-            transition: 0.3s;
+            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
 
         .kpi-card:hover {
             border-color: rgba(255, 255, 255, 0.2);
-            transform: translateY(-4px);
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: var(--premium-shadow);
         }
 
         .kpi-title {
@@ -936,10 +948,40 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b' } } } }
         });
 
+        let lastPositionCount = -1;
+        let lastClosedTradeCount = -1;
+
+        function speak(text) {
+            if (!window.speechSynthesis) return;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'es-ES';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.1;
+            window.speechSynthesis.speak(utterance);
+        }
+
         async function updateDashboard() {
             try {
                 const res = await fetch('/api/status');
                 const data = await res.json();
+
+                // ── AUDIO ALERTS LOGIC ──────────────────────────────────────
+                const currentPositions = data.live_positions || [];
+                const currentClosedToday = data.closed_trades_today || [];
+
+                if (lastPositionCount !== -1 && currentPositions.length > lastPositionCount) {
+                    const newTrade = currentPositions[currentPositions.length - 1];
+                    speak(`Nueva operación abierta en ${newTrade.symbol}.`);
+                }
+                if (lastClosedTradeCount !== -1 && currentClosedToday.length > lastClosedTradeCount) {
+                    const lastClosed = currentClosedToday[currentClosedToday.length - 1];
+                    const pnlText = lastClosed.pnl >= 0 ? 'con beneficio' : 'con pérdida';
+                    speak(`Operación cerrada en ${lastClosed.symbol} ${pnlText}.`);
+                }
+                lastPositionCount = currentPositions.length;
+                lastClosedTradeCount = currentClosedToday.length;
+                // ─────────────────────────────────────────────────────────────
+
                 const orb = document.getElementById('status-orb');
                 const stText = document.getElementById('status-text');
                 const bStart = document.getElementById('btn-start');

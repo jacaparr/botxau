@@ -1,906 +1,697 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ STITCH | Remote Viewer v5.2.2</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
-        rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        :root {
-            --bg: #020617;
-            --surface: rgba(15, 23, 42, 0.4);
-            --surface-bright: rgba(30, 41, 59, 0.5);
-            --accent: #facc15;
-            /* Gold */
-            --accent-glow: rgba(250, 204, 21, 0.4);
-            --cyan: #38bdf8;
-            --emerald: #10b981;
-            --rose: #f43f5e;
-            --text: #f8fafc;
-            --text-dim: #94a3b8;
-            --border: rgba(255, 255, 255, 0.05);
-            --premium-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-            --glass-blur: blur(25px);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ STITCH v7 | Gold Bot Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#030712;--bg2:#0a0f1e;--card:rgba(15,23,42,0.7);--card-border:rgba(255,255,255,0.06);--accent:#f59e0b;--accent2:#fcd34d;--gold-glow:rgba(245,158,11,0.3);--cyan:#38bdf8;--green:#22c55e;--green2:#4ade80;--red:#ef4444;--red2:#f87171;--text:#f8fafc;--text2:#94a3b8;--text3:#64748b;--orange:#f97316;--purple:#a78bfa;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);background-image:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(245,158,11,0.06),transparent),radial-gradient(ellipse 50% 80% at 100% 50%,rgba(56,189,248,0.04),transparent);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;padding:16px;}
+.page{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+/* HEADER */
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--card);border:1px solid var(--card-border);border-radius:14px;backdrop-filter:blur(20px);}
+.header-left{display:flex;align-items:center;gap:14px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.logo-text h1{font-size:16px;font-weight:700;letter-spacing:-0.3px;}
+.logo-text span{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.header-center{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+.stat-pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:5px 11px;font-size:12px;}
+.stat-pill .label{color:var(--text3);}
+.stat-pill .value{font-weight:600;font-family:'JetBrains Mono',monospace;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.time-display{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent2);}
+.refresh-btn{background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:var(--accent2);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s;}
+.refresh-btn:hover{background:rgba(245,158,11,0.25);}
 
-        body {
-            background: var(--bg);
-            background-image:
-                radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.1) 0%, transparent 40%),
-                radial-gradient(circle at 100% 100%, rgba(250, 204, 21, 0.1) 0%, transparent 40%),
-                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, transparent 100%);
-            color: var(--text);
-            font-family: 'Outfit', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            transition: background 0.5s ease;
-        }
+/* GRID */
+.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
 
-        .stitch-container {
-            max-width: 1300px;
-            width: 100%;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: 24px;
-        }
+/* CARD */
+.card{background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:18px;backdrop-filter:blur(20px);}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.card-title{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;}
+.badge{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.badge-green{background:rgba(34,197,94,0.15);color:var(--green2);}
+.badge-red{background:rgba(239,68,68,0.15);color:var(--red2);}
+.badge-yellow{background:rgba(245,158,11,0.15);color:var(--accent2);}
+.badge-offline{background:rgba(100,116,139,0.2);color:var(--text3);}
 
-        @media (max-width: 900px) {
-            .stitch-container {
-                grid-template-columns: 1fr;
-            }
-        }
+/* ACCOUNT CARDS */
+.account-card{border:1px solid var(--card-border);border-radius:14px;padding:18px;backdrop-filter:blur(20px);position:relative;overflow:hidden;}
+.account-card.local{background:linear-gradient(135deg,rgba(15,23,42,0.85),rgba(20,30,55,0.85));border-color:rgba(245,158,11,0.2);}
+.account-card.vps{background:linear-gradient(135deg,rgba(15,23,42,0.85),rgba(10,28,52,0.85));border-color:rgba(56,189,248,0.2);}
+.account-card::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;border-radius:50%;opacity:0.05;pointer-events:none;}
+.account-card.local::before{background:var(--accent);}
+.account-card.vps::before{background:var(--cyan);}
+.acct-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+.acct-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);}
+.acct-balance{font-size:28px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:-1px;margin-top:4px;color:var(--text);}
+.acct-change{font-size:12px;margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.acct-change.up{color:var(--green);}
+.acct-change.down{color:var(--red);}
+.dd-section{margin-top:14px;}
+.dd-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.dd-label{font-size:11px;color:var(--text3);}
+.dd-value{font-size:12px;font-weight:600;font-family:'JetBrains Mono',monospace;}
+.dd-bar{height:6px;background:rgba(255,255,255,0.07);border-radius:99px;overflow:hidden;margin-bottom:12px;}
+.dd-fill{height:100%;border-radius:99px;transition:width .8s ease;}
+.dd-fill.safe{background:linear-gradient(90deg,#16a34a,var(--green2));}
+.dd-fill.warn{background:linear-gradient(90deg,var(--orange),#fbbf24);}
+.dd-fill.danger{background:linear-gradient(90deg,#dc2626,var(--red2));}
+.acct-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px;}
+.mini-stat{background:rgba(255,255,255,0.04);border-radius:8px;padding:10px;}
+.mini-stat .ms-label{font-size:10px;color:var(--text3);margin-bottom:3px;}
+.mini-stat .ms-value{font-size:14px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.ms-green{color:var(--green2);}
+.ms-red{color:var(--red2);}
+.ms-yellow{color:var(--accent2);}
+.ms-cyan{color:var(--cyan);}
 
-        /* --- SIDEBAR --- */
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+/* KPI */
+.kpi-card{background:var(--card);border:1px solid var(--card-border);border-radius:12px;padding:14px 16px;}
+.kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);margin-bottom:6px;}
+.kpi-value{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.kv-green{color:var(--green2);}
+.kv-red{color:var(--red2);}
+.kv-yellow{color:var(--accent2);}
+.kv-cyan{color:var(--cyan);}
+.kv-purple{color:var(--purple);}
 
-        .brand {
-            padding: 24px;
-            background: var(--surface);
-            backdrop-filter: blur(20px);
-            border: var(--border) 1px solid;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+/* CHART */
+.chart-wrap{position:relative;height:180px;}
 
-        .brand-logo {
-            width: 40px;
-            height: 40px;
-            background: var(--accent);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--bg);
-            font-weight: 800;
-        }
+/* TABLE */
+.trade-table{width:100%;border-collapse:collapse;font-size:12px;}
+.trade-table th{text-align:left;padding:8px 10px;color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.6px;border-bottom:1px solid var(--card-border);position:sticky;top:0;background:var(--bg2);}
+.trade-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.03);font-family:'JetBrains Mono',monospace;font-size:11px;}
+.trade-table tr:hover td{background:rgba(255,255,255,0.02);}
+.pnl-pos{color:var(--green2);font-weight:600;}
+.pnl-neg{color:var(--red2);font-weight:600;}
+.dir-l{color:var(--green2);}
+.dir-s{color:var(--red2);}
+.r-win{background:rgba(34,197,94,0.15);color:var(--green2);padding:2px 6px;border-radius:4px;font-size:10px;}
+.r-loss{background:rgba(239,68,68,0.15);color:var(--red2);padding:2px 6px;border-radius:4px;font-size:10px;}
+.r-be{background:rgba(245,158,11,0.15);color:var(--accent2);padding:2px 6px;border-radius:4px;font-size:10px;}
+.trade-empty{text-align:center;padding:28px;color:var(--text3);font-size:13px;}
 
-        .brand-name {
-            font-size: 1.5rem;
-            font-weight: 800;
-            letter-spacing: -1px;
-        }
+/* RADAR */
+.signal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.signal-item{background:rgba(255,255,255,0.03);border:1px solid var(--card-border);border-radius:10px;padding:10px 12px;}
+.signal-sym{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-bottom:6px;color:var(--accent2);}
+.sig-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.sig-bar-lbl{font-size:10px;color:var(--text3);width:36px;}
+.sig-bar-track{flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden;}
+.sig-bar-fill{height:100%;border-radius:99px;transition:width .6s ease;}
+.sfill-l{background:linear-gradient(90deg,#15803d,var(--green2));}
+.sfill-s{background:linear-gradient(90deg,#b91c1c,var(--red2));}
+.sig-bar-pct{font-size:10px;font-family:'JetBrains Mono',monospace;width:30px;text-align:right;}
+.sig-detail{font-size:10px;color:var(--text3);margin-top:4px;font-family:'JetBrains Mono',monospace;}
 
-        .side-card {
-            background: var(--surface);
-            backdrop-filter: blur(20px);
-            border: var(--border) 1px solid;
-            border-radius: 20px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
+/* STRATEGY */
+.strat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.strat-item{background:rgba(255,255,255,0.03);border-radius:8px;padding:10px;}
+.strat-label{font-size:10px;color:var(--text3);margin-bottom:3px;}
+.strat-value{font-size:12px;font-weight:600;font-family:'JetBrains Mono',monospace;}
 
-        .side-label {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            font-weight: 600;
-            letter-spacing: 1px;
-        }
+/* SCHEDULE */
+.sched-bar{display:flex;align-items:center;gap:10px;padding:9px 16px;border-radius:10px;font-size:12px;}
+.sched-bar.active{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.18);}
+.sched-bar.inactive{background:rgba(100,116,139,0.08);border:1px solid rgba(100,116,139,0.14);}
+.sched-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.sched-bar.active .sched-dot{background:var(--green);box-shadow:0 0 7px var(--green);animation:pulse 2s infinite;}
+.sched-bar.inactive .sched-dot{background:var(--text3);}
+.sched-text{flex:1;color:var(--text2);}
+.sched-next{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);}
 
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-        }
+/* PROJ */
+.proj-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0;}
+.proj-item{text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:10px;}
+.proj-label{font-size:10px;color:var(--text3);margin-bottom:4px;}
+.proj-value{font-size:14px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--green2);}
 
-        .stat-name {
-            color: var(--text-dim);
-            font-size: 0.9rem;
-        }
+/* PROP PROGRESS */
+.prog-bar-h{height:10px;background:rgba(255,255,255,0.07);border-radius:99px;overflow:hidden;margin-bottom:4px;}
+.prog-fill{height:100%;border-radius:99px;transition:width .8s ease;background:linear-gradient(90deg,#15803d,var(--green2));}
+.prog-fill.danger{background:linear-gradient(90deg,#dc2626,var(--red2));}
 
-        .stat-val {
-            font-family: 'JetBrains Mono';
-            font-weight: 700;
-            font-size: 1rem;
-        }
-
-        /* Remote Config */
-        .config-input {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px;
-            color: var(--text);
-            font-family: 'JetBrains Mono';
-            font-size: 0.8rem;
-            width: 100%;
-            outline: none;
-            transition: 0.3s;
-        }
-
-        .config-input:focus {
-            border-color: var(--accent);
-        }
-
-        /* --- MAIN CONTENT --- */
-        .main-content {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .header-bar {
-            background: var(--surface);
-            backdrop-filter: blur(20px);
-            border: var(--border) 1px solid;
-            border-radius: 20px;
-            padding: 20px 32px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .bot-identity {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .pulse-orb {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: var(--emerald);
-            animation: pulse-glow 2s infinite;
-        }
-
-        .orb-stopped {
-            background: var(--rose);
-            box-shadow: none;
-            animation: none;
-        }
-
-        @keyframes pulse-glow {
-            0% {
-                transform: scale(1);
-                opacity: 1;
-                box-shadow: 0 0 10px var(--emerald);
-            }
-
-            50% {
-                transform: scale(1.3);
-                opacity: 0.5;
-                box-shadow: 0 0 20px var(--emerald);
-            }
-
-            100% {
-                transform: scale(1);
-                opacity: 1;
-                box-shadow: 0 0 10px var(--emerald);
-            }
-        }
-
-        .control-btns {
-            display: flex;
-            gap: 12px;
-        }
-
-        .btn {
-            background: var(--surface-bright);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 10px 20px;
-            border-radius: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.85rem;
-        }
-
-        .btn-start {
-            background: var(--emerald);
-            border: none;
-        }
-
-        .btn-stop {
-            background: var(--rose);
-            border: none;
-        }
-
-        .btn-disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        .kpi-row {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-        }
-
-        @media (max-width: 600px) {
-            .kpi-row {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .kpi-card {
-            background: var(--surface);
-            border: var(--border) 1px solid;
-            border-radius: 24px;
-            padding: 28px;
-        }
-
-        .kpi-title {
-            color: var(--text-dim);
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-
-        .kpi-value {
-            font-size: 2.2rem;
-            font-weight: 800;
-            font-family: 'JetBrains Mono';
-        }
-
-        .strat-grid {
-            display: grid;
-            grid-template-columns: 2fr 1.2fr;
-            gap: 24px;
-        }
-
-        @media (max-width: 1100px) {
-            .strat-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .chart-card {
-            background: var(--surface);
-            border: var(--border) 1px solid;
-            border-radius: 24px;
-            padding: 28px;
-            height: 400px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .radar-card {
-            background: var(--surface);
-            border: var(--border) 1px solid;
-            border-radius: 24px;
-            padding: 28px;
-        }
-
-        .gauge-box {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .gauge-visual {
-            position: relative;
-            width: 70px;
-            height: 70px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .gauge-svg {
-            transform: rotate(-90deg);
-            width: 70px;
-            height: 70px;
-        }
-
-        .gauge-bg {
-            fill: none;
-            stroke: rgba(255, 255, 255, 0.05);
-            stroke-width: 8;
-        }
-
-        .gauge-fill {
-            fill: none;
-            stroke: var(--accent);
-            stroke-width: 8;
-            stroke-dasharray: 226;
-            stroke-dashoffset: 226;
-            transition: 1s;
-            stroke-linecap: round;
-        }
-
-        .gauge-pct {
-            position: absolute;
-            font-family: 'JetBrains Mono';
-            font-weight: 800;
-            font-size: 0.9rem;
-        }
-
-        .footer {
-            margin-top: auto;
-            padding: 30px 0 10px;
-            display: flex;
-            justify-content: space-between;
-            color: var(--text-dim);
-            font-size: 0.75rem;
-        }
-    </style>
+@media(max-width:960px){.main-grid{grid-template-columns:1fr;}.kpi-row{grid-template-columns:1fr 1fr;}.three-col{grid-template-columns:1fr;}.signal-grid{grid-template-columns:1fr;}}
+</style>
 </head>
-
 <body>
+<div class="page">
 
-    <div class="stitch-container">
-        <aside class="sidebar">
-            <div class="brand">
-                <div class="brand-logo">S</div>
-                <div class="brand-name">STITCH</div>
-            </div>
-
-            <div class="side-card">
-                <div class="side-label">🌐 Conexión</div>
-                <div id="proxy-status" style="display:flex; align-items:center; gap:8px;">
-                    <span
-                        style="width:8px;height:8px;border-radius:50%;background:var(--text-dim);display:inline-block;"
-                        id="conn-dot"></span>
-                    <span style="font-size:0.8rem; color:var(--text-dim)" id="conn-label">Verificando VPS...</span>
-                </div>
-                <div style="font-size:0.7rem; color:var(--text-dim); margin-top:4px;">Via Vercel proxy → VPS</div>
-            </div>
-
-            <div class="side-card">
-                <div class="side-label">📈 Projections</div>
-                <div class="stat-row"><span class="stat-name">Year 1 (Est)</span><span class="stat-val"
-                        style="color:var(--accent)">€34,600</span></div>
-                <div class="stat-row"><span class="stat-name">Target 10%</span><span class="stat-val"
-                        style="color:var(--cyan)">~3 months</span></div>
-            </div>
-
-            <div class="side-card">
-                <div class="side-label">🛡️ Risk Status</div>
-                <div class="stat-row"><span class="stat-name">Daily DD</span><span class="stat-val"
-                        id="sb-daily-dd">0.00%</span></div>
-                <div class="stat-row"><span class="stat-name">Total DD</span><span class="stat-val"
-                        id="sb-total-dd">0.00%</span></div>
-            </div>
-        </aside>
-
-        <main class="main-content">
-            <header class="header-bar">
-                <div class="bot-identity">
-                    <div id="status-orb" class="pulse-orb orb-stopped"></div>
-                    <div>
-                        <div style="font-weight:800; font-size:1.2rem;">Remote Engine v5.2</div>
-                        <div id="status-text" style="font-size:0.75rem; color:var(--text-dim);">DISCONNECTED</div>
-                    </div>
-                </div>
-                <div class="control-btns">
-                    <button id="btn-start" class="btn btn-start" onclick="handleAction('start')"><i data-lucide="play"
-                            size="16"></i> START</button>
-                    <button id="btn-stop" class="btn btn-stop" onclick="handleAction('stop')"><i data-lucide="square"
-                            size="16"></i> STOP</button>
-                </div>
-            </header>
-
-            <div class="kpi-row">
-                <div class="kpi-card">
-                    <div class="kpi-title">Equity</div>
-                    <div class="kpi-value" id="kpi-equity">$---</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">Daily PnL</div>
-                    <div class="kpi-value" id="kpi-daily">$0.00</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">Test (EURUSD)</div>
-                    <div class="kpi-value" id="kpi-test">0.0R</div>
-                </div>
-            </div>
-
-            <!-- 🚦 HEALTH MONITOR (Ported) -->
-            <style>
-                .health-panel {
-                    background: var(--surface);
-                    backdrop-filter: var(--glass-blur);
-                    border: 1px solid var(--border);
-                    border-radius: 24px;
-                    padding: 24px;
-                    display: grid;
-                    grid-template-columns: auto 1fr auto;
-                    gap: 24px;
-                    align-items: center;
-                    margin-bottom: 0px;
-                }
-
-                .semaphore {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                    align-items: center;
-                }
-
-                .sem-light {
-                    width: 18px;
-                    height: 18px;
-                    border-radius: 50%;
-                    background: rgba(255, 255, 255, 0.05);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                }
-
-                .active-green {
-                    background: #10b981;
-                    box-shadow: 0 0 15px #10b981;
-                }
-
-                .active-yellow {
-                    background: #facc15;
-                    box-shadow: 0 0 15px #facc15;
-                }
-
-                .active-red {
-                    background: #f43f5e;
-                    box-shadow: 0 0 15px #f43f5e;
-                }
-
-                .health-bars {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
-
-                .h-track {
-                    height: 8px;
-                    background: rgba(255, 255, 255, 0.05);
-                    border-radius: 4px;
-                    overflow: hidden;
-                }
-
-                .h-fill {
-                    height: 100%;
-                    transition: 0.8s;
-                }
-            </style>
-            <div class="health-panel" id="health-panel">
-                <div class="semaphore">
-                    <div class="sem-light" id="sem-red"></div>
-                    <div class="sem-light" id="sem-yellow"></div>
-                    <div class="sem-light active-green" id="sem-green"></div>
-                </div>
-                <div class="health-bars">
-                    <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-dim);">
-                        <span>DAILY DD</span><span id="hb-daily-val">0.00%</span>
-                    </div>
-                    <div class="h-track">
-                        <div class="h-fill" id="hb-daily-fill" style="width:0%; background:var(--emerald);"></div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-dim);">
-                        <span>TOTAL DD</span><span id="hb-total-val">0.00%</span>
-                    </div>
-                    <div class="h-track">
-                        <div class="h-fill" id="hb-total-fill" style="width:0%; background:var(--emerald);"></div>
-                    </div>
-                </div>
-                <div style="text-align:right;">
-                    <div id="health-label" style="font-weight:800; color:var(--emerald);">SEGURO</div>
-                    <div id="health-risk" style="font-family:'JetBrains Mono'; font-size:1.2rem;">0.45%</div>
-                </div>
-            </div>
-
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo-icon">⚡</div>
+    <div class="logo-text">
+      <h1>STITCH v7</h1>
+      <span>HYBRID_D1_ICT &nbsp;·&nbsp; XAUUSD</span>
     </div>
+  </div>
+  <div class="header-center">
+    <div class="stat-pill"><span class="label">LOCAL</span><span class="value" id="h-bal-local">$—</span></div>
+    <div class="stat-pill"><span class="label">P&amp;L HOY</span><span class="value" id="h-pnl-today" style="color:var(--green2)">$—</span></div>
+    <div class="stat-pill"><span class="label">DD Total</span><span class="value" id="h-dd" style="color:var(--orange)">—%</span></div>
+    <div class="stat-pill"><span class="label">Trades</span><span class="value" id="h-trades" style="color:var(--cyan)">—</span></div>
+    <div class="stat-pill"><span class="label">Risk</span><span class="value" id="h-risk" style="color:var(--accent2)">—%</span></div>
+  </div>
+  <div class="header-right">
+    <div class="live-dot"></div>
+    <div class="time-display" id="utcClock">--:-- UTC</div>
+    <button class="refresh-btn" onclick="fetchAll()">↻ Refresh</button>
+  </div>
+</div>
 
-    <!-- 🤖 DUAL BOT STATUS -->
-    <style>
-        .dual-bot-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 0;
-        }
+<!-- SCHEDULE -->
+<div id="scheduleBar" class="sched-bar inactive">
+  <div class="sched-dot"></div>
+  <span class="sched-text" id="schedText">Cargando horario...</span>
+  <span class="sched-next" id="schedNext"></span>
+</div>
 
-        .bot-card {
-            background: var(--surface);
-            backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            transition: border-color 0.4s;
-        }
+<!-- KPI ROW -->
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="kpi-label">Capital Total (LOCAL+VPS)</div>
+    <div class="kpi-value kv-yellow" id="kpi-total">$—</div>
+    <div class="kpi-sub" id="kpi-total-sub">Cargando...</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">P&amp;L Hoy · LOCAL</div>
+    <div class="kpi-value kv-green" id="kpi-pnl">$—</div>
+    <div class="kpi-sub" id="kpi-pnl-pct">0.000% del balance</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Trades Hoy · WR Histórico</div>
+    <div class="kpi-value kv-cyan" id="kpi-trades">—</div>
+    <div class="kpi-sub" id="kpi-wr">WR — · — trades totales</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Progreso Prop Firm</div>
+    <div class="kpi-value kv-purple" id="kpi-target">+0.00%</div>
+    <div class="kpi-sub" id="kpi-target-sub">de +10% necesario</div>
+  </div>
+</div>
 
-        .bot-card.online {
-            border-color: rgba(16, 185, 129, 0.4);
-        }
-
-        .bot-card.offline {
-            border-color: rgba(244, 63, 94, 0.3);
-        }
-
-        .bot-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .bot-instance-badge {
-            font-size: 0.7rem;
-            font-weight: 700;
-            padding: 3px 10px;
-            border-radius: 20px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .badge-vps {
-            background: rgba(56, 189, 248, 0.15);
-            color: var(--cyan);
-        }
-
-        .badge-local {
-            background: rgba(250, 204, 21, 0.15);
-            color: var(--accent);
-        }
-
-        .bot-status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 6px;
-        }
-
-        .dot-online {
-            background: var(--emerald);
-            box-shadow: 0 0 8px var(--emerald);
-        }
-
-        .dot-offline {
-            background: var(--rose);
-        }
-
-        .bot-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
-        }
-
-        .bot-stat {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-            padding: 8px 12px;
-        }
-
-        .bot-stat-label {
-            font-size: 0.65rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-        }
-
-        .bot-stat-val {
-            font-family: 'JetBrains Mono';
-            font-size: 0.95rem;
-            font-weight: 700;
-        }
-
-        .bot-offline-msg {
-            text-align: center;
-            color: var(--text-dim);
-            font-size: 0.8rem;
-            padding: 12px 0;
-        }
-
-        @media (max-width: 600px) {
-            .dual-bot-row {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-    <div class="dual-bot-row">
-        <div class="bot-card" id="card-vps">
-            <div class="bot-card-header">
-                <div>
-                    <span class="bot-status-dot dot-offline" id="dot-vps"></span>
-                    <span style="font-weight:700;">Bot Servidor</span>
-                    <span style="font-size:0.7rem;color:var(--text-dim);margin-left:6px;">Capital: $25K</span>
-                </div>
-                <span class="bot-instance-badge badge-vps">🌐 VPS</span>
-            </div>
-            <div id="vps-stats">
-                <div class="bot-offline-msg">⏳ Conectando...</div>
-            </div>
-        </div>
-        <div class="bot-card" id="card-local">
-            <div class="bot-card-header">
-                <div>
-                    <span class="bot-status-dot dot-offline" id="dot-local"></span>
-                    <span style="font-weight:700;">Bot Local</span>
-                    <span style="font-size:0.7rem;color:var(--text-dim);margin-left:6px;">Capital: $100K</span>
-                </div>
-                <span class="bot-instance-badge badge-local">💻 LOCAL</span>
-            </div>
-            <div id="local-stats">
-                <div class="bot-offline-msg">⏳ Conectando...</div>
-            </div>
-        </div>
+<!-- ACCOUNT CARDS -->
+<div class="main-grid">
+  <div class="account-card local">
+    <div class="acct-top">
+      <div>
+        <div class="acct-label">🖥️ LOCAL · Demo MT5 · $100K</div>
+        <div class="acct-balance" id="local-balance">$—</div>
+        <div class="acct-change" id="local-change">Cargando...</div>
+      </div>
+      <span class="badge badge-green" id="local-badge">ACTIVO</span>
     </div>
+    <div class="dd-section">
+      <div class="dd-row">
+        <span class="dd-label">DD Diario</span>
+        <span class="dd-value" id="local-daily-dd">0.00%</span>
+        <span class="dd-label" style="color:var(--text3)">/ límite 4%</span>
+      </div>
+      <div class="dd-bar"><div class="dd-fill safe" id="local-daily-fill" style="width:0%"></div></div>
+      <div class="dd-row">
+        <span class="dd-label">DD Total</span>
+        <span class="dd-value" id="local-total-dd">0.00%</span>
+        <span class="dd-label" style="color:var(--text3)">/ límite 8%</span>
+      </div>
+      <div class="dd-bar"><div class="dd-fill safe" id="local-total-fill" style="width:0%"></div></div>
+    </div>
+    <div class="acct-stats">
+      <div class="mini-stat"><div class="ms-label">Risk/Trade</div><div class="ms-value ms-yellow" id="local-risk">0.5%</div></div>
+      <div class="mini-stat"><div class="ms-label">Peak Balance</div><div class="ms-value" id="local-peak">$—</div></div>
+      <div class="mini-stat"><div class="ms-label">Pérd. Consec.</div><div class="ms-value ms-red" id="local-losses">0</div></div>
+      <div class="mini-stat"><div class="ms-label">Trades Hoy</div><div class="ms-value ms-cyan" id="local-trades-today">0</div></div>
+      <div class="mini-stat"><div class="ms-label">P&amp;L Hoy</div><div class="ms-value ms-green" id="local-pnl-today">$0.00</div></div>
+      <div class="mini-stat"><div class="ms-label">Puede operar</div><div class="ms-value ms-green" id="local-can">SÍ ✓</div></div>
+    </div>
+  </div>
 
+  <div class="account-card vps">
+    <div class="acct-top">
+      <div>
+        <div class="acct-label">🌐 VPS · 37.60.247.231 · $25K</div>
+        <div class="acct-balance" id="vps-balance">$25,000</div>
+        <div class="acct-change" id="vps-change" style="color:var(--text3)">Sin conexión</div>
+      </div>
+      <span class="badge badge-offline" id="vps-badge">OFFLINE</span>
+    </div>
+    <div id="vps-online" style="display:none;">
+      <div class="dd-section">
+        <div class="dd-row">
+          <span class="dd-label">DD Diario</span>
+          <span class="dd-value" id="vps-daily-dd">0.00%</span>
+          <span class="dd-label" style="color:var(--text3)">/ límite 4%</span>
+        </div>
+        <div class="dd-bar"><div class="dd-fill safe" id="vps-daily-fill" style="width:0%"></div></div>
+        <div class="dd-row">
+          <span class="dd-label">DD Total</span>
+          <span class="dd-value" id="vps-total-dd">0.00%</span>
+          <span class="dd-label" style="color:var(--text3)">/ límite 8%</span>
+        </div>
+        <div class="dd-bar"><div class="dd-fill safe" id="vps-total-fill" style="width:0%"></div></div>
+      </div>
+      <div class="acct-stats">
+        <div class="mini-stat"><div class="ms-label">Risk/Trade</div><div class="ms-value ms-yellow" id="vps-risk">0.5%</div></div>
+        <div class="mini-stat"><div class="ms-label">Peak Balance</div><div class="ms-value" id="vps-peak">$—</div></div>
+        <div class="mini-stat"><div class="ms-label">Pérd. Consec.</div><div class="ms-value ms-red" id="vps-losses">0</div></div>
+        <div class="mini-stat"><div class="ms-label">Trades Hoy</div><div class="ms-value ms-cyan" id="vps-trades-today">0</div></div>
+        <div class="mini-stat"><div class="ms-label">P&amp;L Hoy</div><div class="ms-value ms-green" id="vps-pnl-today">$0.00</div></div>
+        <div class="mini-stat"><div class="ms-label">Puede operar</div><div class="ms-value ms-green" id="vps-can">—</div></div>
+      </div>
+    </div>
+    <div id="vps-offline">
+      <div style="text-align:center;padding:20px 10px;">
+        <div style="font-size:28px;margin-bottom:8px;">📡</div>
+        <div style="font-size:13px;color:var(--text3);">VPS no accesible</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px;font-family:'JetBrains Mono',monospace;" id="vps-reason">Puerto 5000 cerrado</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">→ Ejecuta reset_vps_25k.ps1 via RDP</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EQUITY CHART + RADAR -->
+<div class="main-grid">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Equity Curve · LOCAL · últimos 30 días</span>
+      <span class="badge badge-yellow" id="equity-badge">XAUUSD</span>
+    </div>
+    <div class="chart-wrap"><canvas id="equityChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Radar de Señales</span>
+      <span class="badge badge-green" id="radar-count">— activos</span>
+    </div>
+    <div class="signal-grid" id="radarGrid">
+      <div style="text-align:center;color:var(--text3);padding:24px;grid-column:1/-1;font-size:12px;">Cargando radar...</div>
+    </div>
+  </div>
+</div>
+
+<!-- TRADE HISTORY TABLE -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Historial de Trades · últimos 30 días</span>
+    <div style="display:flex;gap:8px;">
+      <span class="badge badge-green" id="tbl-wins">— wins</span>
+      <span class="badge badge-red" id="tbl-losses">— losses</span>
+      <span class="badge badge-yellow" id="tbl-wr">WR —%</span>
+      <span class="badge" style="background:rgba(167,139,250,0.15);color:var(--purple);" id="tbl-pnl">P&amp;L $—</span>
+    </div>
+  </div>
+  <div id="tradesWrap" style="overflow-x:auto;max-height:300px;overflow-y:auto;">
+    <div class="trade-empty">Cargando trades...</div>
+  </div>
+</div>
+
+<!-- BOTTOM ROW -->
+<div class="three-col">
+
+  <!-- Estrategia -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Estrategia Activa</span>
+      <span class="badge badge-yellow">v7</span>
+    </div>
+    <div style="font-size:14px;font-weight:700;color:var(--accent2);font-family:'JetBrains Mono',monospace;margin-bottom:12px;">HYBRID_D1_ICT</div>
     <div class="strat-grid">
-        <div class="chart-card">
-            <div style="margin-bottom:15px; font-weight:700;">Live Signal Monitor</div>
-            <div style="flex:1;"><canvas id="mainChart"></canvas></div>
-        </div>
-        <div class="radar-card" id="radar-container">
-            <div style="margin-bottom:20px; font-weight:700;">Strategy Basket Radar</div>
-            <!-- Gauges will be injected here -->
-        </div>
+      <div class="strat-item"><div class="strat-label">Filtro Macro</div><div class="strat-value" style="color:var(--cyan);">D1 SMA200</div></div>
+      <div class="strat-item"><div class="strat-label">Momentum D1</div><div class="strat-value" style="color:var(--cyan);">SMA10 / SMA50</div></div>
+      <div class="strat-item"><div class="strat-label">Entrada H1</div><div class="strat-value" style="color:var(--text2);">Breakout+RSI+ADX</div></div>
+      <div class="strat-item"><div class="strat-label">ICT Window</div><div class="strat-value" style="color:var(--green2);">15:00–16:00 UTC</div></div>
+      <div class="strat-item"><div class="strat-label">RRR Target</div><div class="strat-value" style="color:var(--accent2);">2.5–5× ATR D1</div></div>
+      <div class="strat-item"><div class="strat-label">Sesión</div><div class="strat-value" style="color:var(--text2);">07:00–17:00 UTC</div></div>
     </div>
-
-    <footer class="footer">
-        <div>&copy; 2026 STITCH REMOTE</div>
-        <div id="last-upd">Last check: --:--:--</div>
-    </footer>
-    </main>
+    <div style="margin-top:10px;padding:9px 12px;background:rgba(245,158,11,0.05);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.6;">
+      Skip lunes &nbsp;·&nbsp; 1 trade máx activo &nbsp;·&nbsp; BE @ 0.7R &nbsp;·&nbsp; Trail 0.5×SL &nbsp;·&nbsp; EOD close 18:00
     </div>
+  </div>
 
-    <script>
-        lucide.createIcons();
+  <!-- Proyecciones -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Proyección Mensual</span>
+      <span class="badge badge-yellow">$100K</span>
+    </div>
+    <div class="proj-row">
+      <div class="proj-item"><div class="proj-label">Conservador</div><div class="proj-value">+$2,100</div><div style="font-size:10px;color:var(--text3);margin-top:2px;">+2.1%/mes</div></div>
+      <div class="proj-item"><div class="proj-label">Realista</div><div class="proj-value">+$4,500</div><div style="font-size:10px;color:var(--text3);margin-top:2px;">+4.5%/mes</div></div>
+      <div class="proj-item"><div class="proj-label">Optimista</div><div class="proj-value">+$7,000</div><div style="font-size:10px;color:var(--text3);margin-top:2px;">+7.0%/mes</div></div>
+    </div>
+    <div style="padding:10px;background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.1);border-radius:8px;margin-bottom:8px;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">Trades estimados / mes</div>
+      <div style="font-size:13px;font-weight:600;color:var(--green2);font-family:'JetBrains Mono',monospace;">22–28 trades</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px;">WR ~35% · RRR ~3.5× · EV +0.20%/trade</div>
+    </div>
+    <div style="padding:10px;background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.1);border-radius:8px;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">🏆 Prop firm +10% target</div>
+      <div style="font-size:13px;font-weight:600;color:var(--purple);font-family:'JetBrains Mono',monospace;">~2–3 meses</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px;">Fase 1 → Fase 2 → Fondeado Q2-Q3 2026</div>
+    </div>
+  </div>
 
-        // ✅ Todas las llamadas van al proxy de Vercel → sin CORS
-        const API = '';
+  <!-- Prop Firm Progress -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Prop Firm Challenge</span>
+      <span class="badge badge-yellow" id="pf-badge">EN CURSO</span>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+        <span style="font-size:11px;color:var(--text3);">Objetivo +10% → $110,000</span>
+        <span style="font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--green2);" id="pf-pct">+0.00%</span>
+      </div>
+      <div class="prog-bar-h"><div class="prog-fill" id="pf-fill" style="width:0%"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:3px;">
+        <span style="font-size:10px;color:var(--text3);">$100K</span>
+        <span style="font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--accent2);" id="pf-cur-bal">$—</span>
+        <span style="font-size:10px;color:var(--text3);">$110K</span>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+        <span style="font-size:11px;color:var(--text3);">Margen DD restante</span>
+        <span style="font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--orange);" id="pf-dd-left">$8,000</span>
+      </div>
+      <div class="prog-bar-h" style="transform:scaleX(-1)"><div class="prog-fill" id="pf-dd-fill" style="width:0%;background:linear-gradient(90deg,#15803d,var(--green2));"></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="mini-stat"><div class="ms-label">DD Diario usado</div><div class="ms-value" id="pf-daily" style="color:var(--orange);">0.00%</div></div>
+      <div class="mini-stat"><div class="ms-label">DD Total usado</div><div class="ms-value" id="pf-total" style="color:var(--orange);">0.00%</div></div>
+      <div class="mini-stat"><div class="ms-label">Puede operar</div><div class="ms-value ms-green" id="pf-can">SÍ ✓</div></div>
+      <div class="mini-stat"><div class="ms-label">Risk activo</div><div class="ms-value ms-yellow" id="pf-risk">0.50%</div></div>
+    </div>
+  </div>
+</div>
 
-        const ctx = document.getElementById('mainChart').getContext('2d');
-        const chart = new Chart(ctx, {
-            type: 'line',
-            data: { labels: Array(20).fill(''), datasets: [{ data: Array(20).fill(0), borderColor: '#facc15', borderWidth: 3, tension: 0.4, pointRadius: 0, fill: true, backgroundColor: 'rgba(250, 204, 21, 0.05)' }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' } } } }
-        });
+<!-- FOOTER -->
+<div style="text-align:center;padding:8px 0;font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;">
+  STITCH v7 &nbsp;·&nbsp; HYBRID_D1_ICT &nbsp;·&nbsp; Auto-refresh 30s &nbsp;·&nbsp; <span id="lastRefresh">—</span>
+</div>
 
-        async function checkHealth() {
-            try {
-                const r = await fetch(API + '/api/health');
-                const d = await r.json();
-                const dot = document.getElementById('conn-dot');
-                const lbl = document.getElementById('conn-label');
-                if (d.vps_reachable) {
-                    dot.style.background = 'var(--emerald)';
-                    lbl.innerText = 'VPS conectado ✓';
-                    lbl.style.color = 'var(--emerald)';
-                } else {
-                    dot.style.background = 'var(--rose)';
-                    lbl.innerText = 'VPS sin respuesta';
-                    lbl.style.color = 'var(--rose)';
-                }
-            } catch (e) {
-                document.getElementById('conn-label').innerText = 'Proxy error';
-            }
-        }
+</div>
 
-        async function update() {
-            try {
-                const res = await fetch(API + '/api/status');
-                const data = await res.json();
+<script>
+let eqChart = null;
 
-                if (data.status === 'error') throw new Error(data.message);
+// CLOCK
+function tick(){const n=new Date();const p=v=>String(v).padStart(2,'0');document.getElementById('utcClock').textContent=p(n.getUTCHours())+':'+p(n.getUTCMinutes())+':'+p(n.getUTCSeconds())+' UTC';}
+setInterval(tick,1000);tick();
 
-                document.getElementById('status-orb').className = data.is_running ? 'pulse-orb' : 'pulse-orb orb-stopped';
-                document.getElementById('status-text').innerText = data.is_running ? 'REMOTE ACTIVE' : 'REMOTE OFFLINE';
-                document.getElementById('status-text').style.color = data.is_running ? 'var(--emerald)' : 'var(--text-dim)';
+// HELPERS
+const f$=v=>v==null?'$—':'$'+Number(v).toLocaleString('es',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fP=v=>v==null?'—%':Number(v).toFixed(2)+'%';
+function ddCls(p,l){const r=p/l;return r<0.5?'safe':r<0.8?'warn':'danger';}
+function setBar(id,pct,lim){const e=document.getElementById(id);if(!e)return;e.style.width=Math.min(100,(pct/lim)*100)+'%';e.className='dd-fill '+ddCls(pct,lim);}
 
-                if (data.prop_firm) {
-                    const pf = data.prop_firm;
-                    const currency = data.account?.currency === 'EUR' ? '€' : '$';
-                    const dailyPct = pf.daily_dd;
-                    const totalPct = pf.total_dd;
+// SCHEDULE
+async function loadSched(){
+  try{
+    const d=await(await fetch('/api/schedule')).json();
+    const bar=document.getElementById('scheduleBar');
+    const txt=document.getElementById('schedText');
+    const nxt=document.getElementById('schedNext');
+    if(d.in_schedule){
+      bar.className='sched-bar active';
+      txt.innerHTML='<span style="color:var(--green);font-weight:600;">● SESIÓN ACTIVA</span>  '+d.current_utc+'  ·  '+d.schedule;
+    }else{
+      bar.className='sched-bar inactive';
+      txt.innerHTML='<span style="color:var(--text3);">⏸ FUERA DE HORARIO</span>  '+d.current_utc+'  ·  '+d.schedule;
+    }
+    nxt.textContent='Próxima: '+d.next_session;
+  }catch(e){}
+}
 
-                    document.getElementById('sb-daily-dd').innerText = dailyPct.toFixed(2) + '%';
-                    document.getElementById('sb-total-dd').innerText = totalPct.toFixed(2) + '%';
+// EQUITY CHART
+function buildChart(trades){
+  const ctx=document.getElementById('equityChart').getContext('2d');
+  let cap=100000;
+  const lbs=['Inicio'],vals=[cap];
+  if(trades&&trades.length){
+    const sorted=[...trades].sort((a,b)=>(a.time_close||'').localeCompare(b.time_close||''));
+    sorted.forEach(t=>{
+      cap+=Number(t.pnl||0);
+      lbs.push((t.time_close||'').substring(5,10));
+      vals.push(Math.round(cap*100)/100);
+    });
+  }
+  const profit=vals[vals.length-1]>=vals[0];
+  const col=profit?'#22c55e':'#ef4444';
+  const fill=profit?'rgba(34,197,94,0.07)':'rgba(239,68,68,0.07)';
+  if(eqChart)eqChart.destroy();
+  eqChart=new Chart(ctx,{
+    type:'line',
+    data:{labels:lbs,datasets:[{data:vals,borderColor:col,backgroundColor:fill,borderWidth:2,pointRadius:vals.length>30?0:3,pointHoverRadius:5,fill:true,tension:0.3}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'$'+c.parsed.y.toLocaleString('es',{minimumFractionDigits:2})}}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#64748b',font:{size:10},maxTicksLimit:8}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#64748b',font:{size:10},callback:v=>'$'+(v/1000).toFixed(0)+'K'}}
+      }
+    }
+  });
+}
 
-                    // Update Health Monitor
-                    const hbDaily = document.getElementById('hb-daily-fill');
-                    const hbTotal = document.getElementById('hb-total-fill');
-                    hbDaily.style.width = Math.min((dailyPct / 4) * 100, 100) + '%';
-                    hbTotal.style.width = Math.min((totalPct / 8) * 100, 100) + '%';
-                    document.getElementById('hb-daily-val').innerText = dailyPct.toFixed(2) + '%';
-                    document.getElementById('hb-total-val').innerText = totalPct.toFixed(2) + '%';
+// TRADE TABLE
+function buildTable(trades){
+  const wrap=document.getElementById('tradesWrap');
+  if(!trades||!trades.length){
+    wrap.innerHTML='<div class="trade-empty">No hay trades registrados aún — el bot comenzó hoy</div>';
+    ['tbl-wins','tbl-losses','tbl-wr','tbl-pnl'].forEach(id=>{document.getElementById(id).textContent=id.includes('wins')?'0 wins':id.includes('losses')?'0 losses':id.includes('wr')?'WR —%':'P&L $0';});
+    return;
+  }
+  const sorted=[...trades].sort((a,b)=>(b.time_close||'').localeCompare(a.time_close||''));
+  const wins=trades.filter(t=>Number(t.pnl)>0).length;
+  const loss=trades.filter(t=>Number(t.pnl)<0).length;
+  const wr=trades.length>0?(wins/trades.length*100).toFixed(1):'—';
+  const totPnl=trades.reduce((s,t)=>s+Number(t.pnl||0),0);
+  document.getElementById('tbl-wins').textContent=wins+' wins';
+  document.getElementById('tbl-losses').textContent=loss+' losses';
+  document.getElementById('tbl-wr').textContent='WR '+wr+'%';
+  const pEl=document.getElementById('tbl-pnl');
+  pEl.textContent='P&L '+(totPnl>=0?'+':'')+f$(totPnl);
+  pEl.style.color=totPnl>=0?'var(--green2)':'var(--red2)';
 
-                    const isDanger = dailyPct > 3.5 || totalPct > 7.5;
-                    const isCaution = dailyPct > 2.0 || totalPct > 4.0;
+  let h='<table class="trade-table"><thead><tr><th>Fecha/Hora</th><th>Símbolo</th><th>Dirección</th><th>Entrada</th><th>Cierre</th><th>Volumen</th><th>P&L</th><th>Resultado</th></tr></thead><tbody>';
+  sorted.forEach(t=>{
+    const pnl=Number(t.pnl||0);
+    const pc=pnl>=0?'pnl-pos':'pnl-neg';
+    const ps=(pnl>=0?'+':'')+f$(pnl);
+    const dir=(t.direction||'').toUpperCase();
+    const dc=dir==='BUY'||dir==='LONG'?'dir-l':'dir-s';
+    const res=pnl>0?'<span class="r-win">WIN</span>':pnl<0?'<span class="r-loss">LOSS</span>':'<span class="r-be">BE</span>';
+    h+=`<tr><td>${(t.time_close||'—').substring(0,16)}</td><td style="color:var(--accent2)">${t.symbol||'—'}</td><td class="${dc}">${dir}</td><td>${Number(t.price_open||0).toFixed(2)}</td><td>${Number(t.price_close||0).toFixed(2)}</td><td>${Number(t.volume||0).toFixed(2)}</td><td class="${pc}">${ps}</td><td>${res}</td></tr>`;
+  });
+  h+='</tbody></table>';
+  wrap.innerHTML=h;
+}
 
-                    const semR = document.getElementById('sem-red'), semY = document.getElementById('sem-yellow'), semG = document.getElementById('sem-green');
-                    const hLabel = document.getElementById('health-label');
-                    semR.className = 'sem-light'; semY.className = 'sem-light'; semG.className = 'sem-light';
+// RADAR
+function buildRadar(radar){
+  const grid=document.getElementById('radarGrid');
+  document.getElementById('radar-count').textContent=(radar&&radar.length?radar.length:0)+' activos';
+  if(!radar||!radar.length){grid.innerHTML='<div style="text-align:center;color:var(--text3);padding:24px;grid-column:1/-1;font-size:12px;">Sin datos de radar</div>';return;}
+  let h='';
+  radar.forEach(s=>{
+    const ls=Number(s.long_score||0),ss=Number(s.short_score||0);
+    const dominant=ls>ss?`<span style="color:var(--green2);font-size:10px;font-weight:700;">▲ LONG ${ls.toFixed(0)}%</span>`:`<span style="color:var(--red2);font-size:10px;font-weight:700;">▼ SHORT ${ss.toFixed(0)}%</span>`;
+    h+=`<div class="signal-item">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span class="signal-sym">${s.symbol||s.label||'—'}</span>${dominant}
+      </div>
+      <div class="sig-bar-row"><span class="sig-bar-lbl" style="color:var(--green2)">LONG</span><div class="sig-bar-track"><div class="sig-bar-fill sfill-l" style="width:${ls}%"></div></div><span class="sig-bar-pct" style="color:var(--green2)">${ls.toFixed(0)}%</span></div>
+      <div class="sig-bar-row"><span class="sig-bar-lbl" style="color:var(--red2)">SHORT</span><div class="sig-bar-track"><div class="sig-bar-fill sfill-s" style="width:${ss}%"></div></div><span class="sig-bar-pct" style="color:var(--red2)">${ss.toFixed(0)}%</span></div>
+      <div class="sig-detail">${s.details||''}</div>
+    </div>`;
+  });
+  grid.innerHTML=h;
+}
 
-                    if (isDanger) {
-                        semR.className = 'sem-light active-red'; hLabel.innerText = 'PELIGRO'; hLabel.style.color = 'var(--rose)';
-                        hbDaily.style.background = 'var(--rose)'; hbTotal.style.background = 'var(--rose)';
-                    } else if (isCaution) {
-                        semY.className = 'sem-light active-yellow'; hLabel.innerText = 'PRECAUCIÓN'; hLabel.style.color = 'var(--accent)';
-                        hbDaily.style.background = 'var(--accent)'; hbTotal.style.background = 'var(--accent)';
-                    } else {
-                        semG.className = 'sem-light active-green'; hLabel.innerText = 'SEGURO'; hLabel.style.color = 'var(--emerald)';
-                        hbDaily.style.background = 'var(--emerald)'; hbTotal.style.background = 'var(--emerald)';
-                    }
+// UPDATE LOCAL
+function updateLocal(d){
+  const pf=d.prop_firm||{};
+  const start=d.prop_starting_balance||100000;
+  const bal=Number(pf.peak_balance||d.prop_starting_balance||100000);
+  const dailyDD=Number(pf.daily_dd||0);
+  const totalDD=Number(pf.total_dd||0);
+  const pnlT=Number(d.pnl_today||0);
+  const trades=Number(d.trades_today||0);
+  const peak=Number(pf.peak_balance||bal);
+  const loss=Number(pf.consecutive_losses||0);
+  const canTrade=pf.can_trade!==false;
+  const risk=Number(pf.current_risk||0.5);
 
-                    if (data.account) {
-                        document.getElementById('kpi-equity').innerText = currency + (data.account.equity || data.account.balance).toLocaleString();
-                        document.getElementById('kpi-daily').innerText = currency + (data.pnl_today || 0).toFixed(2);
-                    }
-                }
-                document.getElementById('kpi-test').innerText = (data.virtual_pnl_today || 0).toFixed(1) + 'R';
+  document.getElementById('local-balance').textContent=f$(bal);
+  const chg=bal-start;
+  const chgEl=document.getElementById('local-change');
+  chgEl.textContent=(chg>=0?'+':'')+f$(chg)+' desde inicio ('+(((bal/start)-1)*100).toFixed(2)+'%)';
+  chgEl.className='acct-change '+(chg>=0?'up':'down');
 
-                if (data.radar) {
-                    const container = document.getElementById('radar-container');
-                    // Solo renderizamos si hay cambios o la primera vez
-                    if (data.radar.length > 0) {
-                        const radarHtml = `
-                            <div style="margin-bottom:20px; font-weight:700;">Strategy Basket Radar</div>
-                            ${data.radar.slice(0, 4).map(r => `
-                                <div class="gauge-box">
-                                    <div class="gauge-visual">
-                                        <svg class="gauge-svg">
-                                            <circle class="gauge-bg" cx="35" cy="35" r="31"></circle>
-                                            <circle class="gauge-fill" style="stroke-dashoffset: ${195 - (195 * Math.max(r.long_score, r.short_score) / 100)}; stroke: ${r.long_score >= r.short_score ? 'var(--emerald)' : 'var(--rose)'}" cx="35" cy="35" r="31"></circle>
-                                        </svg>
-                                        <span class="gauge-pct" style="color: ${r.long_score >= r.short_score ? 'var(--emerald)' : 'var(--rose)'}">${Math.round(Math.max(r.long_score, r.short_score))}%</span>
-                                    </div>
-                                    <div>
-                                        <div style="font-weight:700;">${r.symbol}</div>
-                                        <div style="font-size:0.7rem; color:var(--text-dim);">${r.details}</div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        `;
-                        container.innerHTML = radarHtml;
+  document.getElementById('local-daily-dd').textContent=fP(dailyDD);
+  document.getElementById('local-total-dd').textContent=fP(totalDD);
+  setBar('local-daily-fill',dailyDD,4);
+  setBar('local-total-fill',totalDD,8);
 
-                        // Chart update using the top symbol
-                        const top = data.radar[0];
-                        const score = Math.max(top.long_score, top.short_score);
-                        chart.data.datasets[0].data.shift();
-                        chart.data.datasets[0].data.push(score);
-                        chart.update('none');
-                    }
-                }
-                document.getElementById('last-upd').innerText = 'Last check: ' + new Date().toLocaleTimeString();
-            } catch (e) {
-                document.getElementById('status-text').innerText = 'VPS OFFLINE';
-                document.getElementById('status-text').style.color = 'var(--rose)';
-                document.getElementById('last-upd').innerText = 'Error: ' + e.message;
-            }
-        }
+  document.getElementById('local-risk').textContent=risk+'%';
+  document.getElementById('local-peak').textContent=f$(peak);
+  document.getElementById('local-losses').textContent=loss;
+  document.getElementById('local-trades-today').textContent=trades;
+  const pEl=document.getElementById('local-pnl-today');
+  pEl.textContent=(pnlT>=0?'+':'')+f$(pnlT);
+  pEl.className='ms-value '+(pnlT>=0?'ms-green':'ms-red');
+  const cEl=document.getElementById('local-can');
+  cEl.textContent=canTrade?'SÍ ✓':'NO ✗';
+  cEl.className='ms-value '+(canTrade?'ms-green':'ms-red');
 
-        async function handleAction(action) {
-            if (!confirm(`¿Confirmar ${action.toUpperCase()} del bot en VPS?`)) return;
-            try {
-                const r = await fetch(API + '/api/control', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action })
-                });
-                const d = await r.json();
-                alert(d.message || 'OK');
-                update();
-            } catch (e) { alert('Error: ' + e.message); }
-        }
+  const badge=document.getElementById('local-badge');
+  badge.textContent=canTrade?'ACTIVO':'BLOQUEADO';
+  badge.className='badge '+(canTrade?'badge-green':'badge-red');
 
-        function renderBotCard(containerId, dotId, cardId, data) {
-            const dot = document.getElementById(dotId);
-            const card = document.getElementById(cardId);
-            const box = document.getElementById(containerId);
-            if (!data || !data.reachable) {
-                dot.className = 'bot-status-dot dot-offline';
-                card.className = 'bot-card offline';
-                const reason = (data && data.reason) ? data.reason : 'No disponible';
-                box.innerHTML = `<div class="bot-offline-msg">🔴 Sin conexión<br><small style="color:var(--text-dim)">${reason.substring(0, 80)}</small></div>`;
-                return;
-            }
-            dot.className = 'bot-status-dot dot-online';
-            card.className = 'bot-card online';
-            const cur = data.account?.currency === 'EUR' ? '€' : '$';
-            const eq  = data.account?.equity ?? data.account?.balance ?? 0;
-            const bal = data.account?.balance ?? 0;
-            const pnl = data.pnl_today ?? 0;
-            const trades = data.trades_today ?? 0;
-            const risk = data.prop_firm?.current_risk ?? '---';
-            const dailyDD = data.prop_firm?.daily_dd ?? 0;
-            const totalDD = data.prop_firm?.total_dd ?? 0;
-            const startBal = data.starting_balance ?? 0;
-            const totalPnl = startBal > 0 ? (bal - startBal) : 0;
-            const totalPct = startBal > 0 ? ((bal / startBal - 1) * 100) : 0;
-            const pnlColor  = pnl >= 0 ? 'var(--emerald)' : 'var(--rose)';
-            const tpnlColor = totalPnl >= 0 ? 'var(--emerald)' : 'var(--rose)';
-            const ddColor   = dailyDD > 3 ? 'var(--rose)' : dailyDD > 1.5 ? 'var(--accent)' : 'var(--emerald)';
-            box.innerHTML = `
-                <div class="bot-stats">
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">Equity</div>
-                        <div class="bot-stat-val">${cur}${Number(eq).toLocaleString()}</div>
-                    </div>
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">PnL Hoy</div>
-                        <div class="bot-stat-val" style="color:${pnlColor}">${pnl >= 0 ? '+' : ''}${cur}${Number(pnl).toFixed(2)}</div>
-                    </div>
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">PnL Total</div>
-                        <div class="bot-stat-val" style="color:${tpnlColor}">${totalPnl >= 0 ? '+' : ''}${cur}${Number(totalPnl).toLocaleString()} <span style="font-size:0.7rem">(${totalPct >= 0 ? '+' : ''}${totalPct.toFixed(1)}%)</span></div>
-                    </div>
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">Trades Hoy</div>
-                        <div class="bot-stat-val">${trades}</div>
-                    </div>
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">DD Diario</div>
-                        <div class="bot-stat-val" style="color:${ddColor}">${Number(dailyDD).toFixed(2)}%</div>
-                    </div>
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">DD Total</div>
-                        <div class="bot-stat-val" style="color:${totalDD > 6 ? 'var(--rose)' : 'var(--text)'}">${Number(totalDD).toFixed(2)}%</div>
-                    </div>
-                    <div class="bot-stat">
-                        <div class="bot-stat-label">Riesgo</div>
-                        <div class="bot-stat-val">${risk}%</div>
-                    </div>
-                </div>`;
-        }
+  // Header pills
+  document.getElementById('h-bal-local').textContent=f$(bal);
+  const hP=document.getElementById('h-pnl-today');
+  hP.textContent=(pnlT>=0?'+':'')+f$(pnlT);
+  hP.style.color=pnlT>=0?'var(--green2)':'var(--red2)';
+  document.getElementById('h-dd').textContent=fP(totalDD);
+  document.getElementById('h-dd').style.color=ddCls(totalDD,8)==='danger'?'var(--red2)':ddCls(totalDD,8)==='warn'?'var(--orange)':'var(--green2)';
+  document.getElementById('h-trades').textContent=trades;
+  document.getElementById('h-risk').textContent=risk+'%';
 
-        async function updateBots() {
-            try {
-                const r = await fetch(API + '/api/all-status');
-                const d = await r.json();
-                renderBotCard('vps-stats', 'dot-vps', 'card-vps', d.vps);
-                renderBotCard('local-stats', 'dot-local', 'card-local', d.local);
-            } catch (e) {
-                console.warn('Dual bot fetch error:', e.message);
-            }
-        }
+  // KPIs
+  const kPnl=document.getElementById('kpi-pnl');
+  kPnl.textContent=(pnlT>=0?'+':'')+f$(pnlT);
+  kPnl.className='kpi-value '+(pnlT>=0?'kv-green':'kv-red');
+  document.getElementById('kpi-pnl-pct').textContent=(pnlT>=0?'+':'')+(pnlT/start*100).toFixed(3)+'% del balance';
+  document.getElementById('kpi-trades').textContent=trades;
 
-        checkHealth();
-        setInterval(update, 5000);
-        setInterval(checkHealth, 30000);
-        setInterval(updateBots, 30000);
-        update();
-        updateBots();
-    </script>
+  // Prop firm  
+  const gained=((bal/start-1)*100).toFixed(2);
+  document.getElementById('kpi-target').textContent='+'+gained+'%';
+  document.getElementById('kpi-target').className='kpi-value '+(Number(gained)>=5?'kv-green':'kv-purple');
+  document.getElementById('kpi-target-sub').textContent=gained+'% de +10% necesario';
+
+  document.getElementById('pf-pct').textContent='+'+gained+'% / +10%';
+  const prog=Math.max(0,Math.min(100,(bal-start)/(start*0.1)*100));
+  document.getElementById('pf-fill').style.width=prog+'%';
+  document.getElementById('pf-cur-bal').textContent=f$(bal);
+  const ddLeft=Math.max(0,start*0.08-(peak-bal));
+  document.getElementById('pf-dd-left').textContent=f$(ddLeft)+' restante';
+  const ddUsed=Math.min(100,(totalDD/8)*100);
+  const pfDDFill=document.getElementById('pf-dd-fill');
+  pfDDFill.style.width=ddUsed+'%';
+  pfDDFill.className='prog-fill'+(ddCls(totalDD,8)==='danger'?' danger':'');
+  document.getElementById('pf-daily').textContent=fP(dailyDD);
+  document.getElementById('pf-total').textContent=fP(totalDD);
+  const pfCan=document.getElementById('pf-can');
+  pfCan.textContent=canTrade?'SÍ ✓':'NO ✗';
+  pfCan.className='ms-value '+(canTrade?'ms-green':'ms-red');
+  document.getElementById('pf-risk').textContent=risk+'%';
+
+  return bal;
+}
+
+// UPDATE VPS
+function updateVps(d,localBal){
+  const online=document.getElementById('vps-online');
+  const offline=document.getElementById('vps-offline');
+  const badge=document.getElementById('vps-badge');
+  const start=d&&d.prop_starting_balance||25000;
+
+  if(!d||!d.reachable){
+    online.style.display='none';offline.style.display='block';
+    badge.textContent='OFFLINE';badge.className='badge badge-offline';
+    document.getElementById('vps-reason').textContent=d&&d.reason?d.reason.substring(0,80):'Sin respuesta en puerto 5000';
+    document.getElementById('kpi-total').textContent=f$(localBal+start);
+    document.getElementById('kpi-total-sub').textContent='LOCAL '+f$(localBal)+' + VPS offline ($25K ref)';
+    return;
+  }
+  online.style.display='block';offline.style.display='none';
+  badge.textContent='ACTIVO';badge.className='badge badge-green';
+
+  const pf=d.prop_firm||{};
+  const bal=Number(pf.peak_balance||start);
+  const dailyDD=Number(pf.daily_dd||0);
+  const totalDD=Number(pf.total_dd||0);
+  const pnlT=Number(d.pnl_today||0);
+
+  document.getElementById('vps-balance').textContent=f$(bal);
+  const chg=bal-start;
+  const chgEl=document.getElementById('vps-change');
+  chgEl.textContent=(chg>=0?'+':'')+f$(chg)+' ('+(((bal/start)-1)*100).toFixed(2)+'%)';
+  chgEl.className='acct-change '+(chg>=0?'up':'down');
+
+  document.getElementById('vps-daily-dd').textContent=fP(dailyDD);
+  document.getElementById('vps-total-dd').textContent=fP(totalDD);
+  setBar('vps-daily-fill',dailyDD,4);
+  setBar('vps-total-fill',totalDD,8);
+
+  document.getElementById('vps-risk').textContent=(pf.current_risk||0.5)+'%';
+  document.getElementById('vps-peak').textContent=f$(pf.peak_balance||bal);
+  document.getElementById('vps-losses').textContent=pf.consecutive_losses||0;
+  document.getElementById('vps-trades-today').textContent=d.trades_today||0;
+  const vP=document.getElementById('vps-pnl-today');
+  vP.textContent=(pnlT>=0?'+':'')+f$(pnlT);
+  vP.className='ms-value '+(pnlT>=0?'ms-green':'ms-red');
+  const vC=document.getElementById('vps-can');
+  vC.textContent=pf.can_trade!==false?'SÍ ✓':'NO ✗';
+  vC.className='ms-value '+(pf.can_trade!==false?'ms-green':'ms-red');
+
+  const total=localBal+bal;
+  document.getElementById('kpi-total').textContent=f$(total);
+  document.getElementById('kpi-total-sub').textContent='LOCAL '+f$(localBal)+' + VPS '+f$(bal);
+}
+
+// MAIN FETCH
+async function fetchAll(){
+  try{
+    const [allR,schedR]=await Promise.all([fetch('/api/all-status'),fetch('/api/schedule')]);
+    const all=await allR.json();
+    const sched=await schedR.json();
+    const loc=all.local||{};
+    const vps=all.vps||{};
+
+    // Schedule
+    const bar=document.getElementById('scheduleBar');
+    const txt=document.getElementById('schedText');
+    const nxt=document.getElementById('schedNext');
+    if(sched.in_schedule){bar.className='sched-bar active';txt.innerHTML='<span style="color:var(--green);font-weight:600;">● SESIÓN ACTIVA</span>  '+sched.current_utc+'  ·  '+sched.schedule;}
+    else{bar.className='sched-bar inactive';txt.innerHTML='<span style="color:var(--text3);">⏸ FUERA DE HORARIO</span>  '+sched.current_utc+'  ·  '+sched.schedule;}
+    nxt.textContent='Próxima: '+sched.next_session;
+
+    const localBal=updateLocal(loc);
+    updateVps(vps,localBal||100000);
+
+    const trades=loc.trade_history||[];
+    buildTable(trades);
+    buildChart(trades);
+
+    if(trades.length){
+      const w=trades.filter(t=>Number(t.pnl)>0).length;
+      document.getElementById('kpi-wr').textContent='WR '+(w/trades.length*100).toFixed(0)+'% · '+trades.length+' trades totales';
+    }
+
+    buildRadar(loc.radar||[]);
+    document.getElementById('lastRefresh').textContent='Actualizado: '+new Date().toLocaleTimeString('es');
+  }catch(e){console.error('fetchAll error:',e);}
+}
+
+fetchAll();
+setInterval(fetchAll,30000);
+</script>
 </body>
-
 </html>

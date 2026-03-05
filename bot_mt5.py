@@ -110,7 +110,7 @@ SYMBOL_CONFIGS = {
     "GBPUSD": {
         "aliases":     ["GBPUSD", "GBPUSDm", "GBPUSD.a"],
         "strategy":    "ENSEMBLE",
-        "live":        True,
+        "live":        False,  # DESACTIVADO: MaxDD 9.22% supera límite prop 8%
         "timeframe":   mt5.TIMEFRAME_H1,
         "adx_min":     20.0,
     },
@@ -138,7 +138,7 @@ SYMBOL_CONFIGS = {
     "USDCHF": {
         "aliases":     ["USDCHF", "USDCHFm", "USDCHF.a"],
         "strategy":    "ENSEMBLE",
-        "live":        True,
+        "live":        False,  # DESACTIVADO: PF=1.0, rendimiento insignificante
         "timeframe":   mt5.TIMEFRAME_H1,
         "adx_min":     20.0,
     },

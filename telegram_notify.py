@@ -39,7 +39,16 @@ except ImportError:
 # ─────────────────────────────────────────────────────────────────────────────
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID",    "")
+
+# Identificador del bot (LOCAL o VPS) — configura en .env:
+#   BOT_INSTANCE=VPS   → en el servidor remoto
+#   BOT_INSTANCE=LOCAL → en tu máquina
+_INSTANCE = os.getenv("BOT_INSTANCE", "LOCAL").upper()
+_INSTANCE_HEADER = (
+    "🌐 <b>[VPS]</b>\n" if _INSTANCE == "VPS" else
+    "💻 <b>[LOCAL]</b>\n"
+)
 
 # Si no hay token/chat_id, las notificaciones se desactivan silenciosamente
 _ENABLED = bool(BOT_TOKEN and CHAT_ID)
@@ -57,7 +66,7 @@ def _send_message(text: str, parse_mode: str = "HTML") -> bool:
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = json.dumps({
         "chat_id": CHAT_ID,
-        "text": text,
+        "text": _INSTANCE_HEADER + text,
         "parse_mode": parse_mode,
         "disable_web_page_preview": True,
     }).encode("utf-8")

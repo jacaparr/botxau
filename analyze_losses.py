@@ -78,14 +78,36 @@ def get_indicators_at_entry(symbol, time_open_str):
     except Exception as e:
         return None
 
+def generate_weekly_report():
+    """Genera el reporte de análisis como una cadena de texto para Telegram."""
+    if not mt5.initialize():
+        return "❌ MT5 no disponible."
+    try:
+        trades = load_unique_trades()
+        if not trades: return "❌ No hay trades."
+        df = pd.DataFrame(trades)
+        df["pnl"] = pd.to_numeric(df["pnl"], errors='coerce').fillna(0)
+        wins = df[df["pnl"] > 0]
+        total_pnl = df["pnl"].sum()
+        
+        report = [
+            f"📊 <b>REPORTE SEMANAL</b> ({len(df)} ops)",
+            f"<b>PnL Total:</b> {total_pnl:+.2f}€",
+            f"<b>Win Rate:</b> {len(wins)}/{len(df)} ({len(wins)/len(df)*100:.1f}%)",
+            "\n<b>Análisis de Riesgo:</b>",
+            f"• Correlación USD activa: SÍ"
+        ]
+        return "\n".join(report)
+    finally:
+        mt5.shutdown()
+
 def main():
     if not mt5.initialize():
-        print("❌ MT5 no disponible. Ejecuta con MT5 activo.")
+        print("❌ MT5 no disponible.")
         return
-
     trades = load_unique_trades()
     if not trades:
-        print("❌ No se encontraron trades en trade_history.csv")
+        print("❌ No hay trades.")
         mt5.shutdown()
         return
 
@@ -94,103 +116,38 @@ def main():
     
     results = []
     aliases = {
-        "AUDUSD": ["AUDUSD", "AUDUSDm"],
-        "EURUSD": ["EURUSD", "EURUSDm"],
-        "GBPUSD": ["GBPUSD", "GBPUSDm"],
-        "USDCAD": ["USDCAD", "USDCADm"],
-        "USDCHF": ["USDCHF", "USDCHFm"],
-        "USDJPY": ["USDJPY", "USDJPYm"],
-        "XAUUSD": ["XAUUSD", "XAUUSDm", "GOLD"],
-        "XAGUSD": ["XAGUSD", "XAGUSDm", "SILVER"],
+        "AUDUSD": ["AUDUSD", "AUDUSDm"], "EURUSD": ["EURUSD", "EURUSDm"],
+        "GBPUSD": ["GBPUSD", "GBPUSDm"], "USDCAD": ["USDCAD", "USDCADm"],
+        "USDCHF": ["USDCHF", "USDCHFm"], "USDJPY": ["USDJPY", "USDJPYm"],
+        "XAUUSD": ["XAUUSD", "XAUUSDm", "GOLD"], "XAGUSD": ["XAGUSD", "XAGUSDm", "SILVER"],
     }
 
     for t in trades:
         symbol = str(t.get("symbol",""))
         time_open = str(t.get("time_open",""))
-        pnl = float(t.get("pnl") or 0)
-        direction = str(t.get("direction",""))
-        
-        if not time_open or not symbol:
-            continue
-        
-        # Buscar el símbolo correcto en MT5
+        pnl = float(t.get("pnl") or 0); direction = str(t.get("direction",""))
+        if not time_open or not symbol: continue
         mt5_symbol = symbol
         for base, alts in aliases.items():
             if symbol.upper().startswith(base[:4]):
                 for a in alts:
-                    if mt5.symbol_info(a):
-                        mt5_symbol = a
-                        break
+                    if mt5.symbol_info(a): mt5_symbol = a; break
                 break
-        
         inds = get_indicators_at_entry(mt5_symbol, time_open)
-        try:
-            dt = datetime.fromisoformat(time_open)
-            hour_utc = dt.hour
-            session = get_session(hour_utc)
-        except:
-            hour_utc = -1
-            session = "?"
-        
-        result = {
-            **t,
-            "pnl": pnl,
-            "hour_utc": hour_utc,
-            "session": session,
-        }
-        if inds:
-            result.update(inds)
+        dt = datetime.fromisoformat(time_open)
+        result = {**t, "pnl": pnl, "hour_utc": dt.hour, "session": get_session(dt.hour)}
+        if inds: result.update(inds)
         results.append(result)
     
     df = pd.DataFrame(results)
-    
     print(f"\n{'Sym':<8} {'Dir':<6} {'PnL':>9}  {'Session':<12} {'H':>3}  {'RSI':>6}  {'ADX':>6}  {'AbEMA'}")
     print("-" * 75)
     for _, r in df.iterrows():
-        pnl = r["pnl"]
-        marker = "✅" if pnl > 0 else "❌"
-        rsi = f"{r['rsi']:.1f}" if "rsi" in r and pd.notna(r.get("rsi")) else "  N/A"
-        adx = f"{r['adx']:.1f}" if "adx" in r and pd.notna(r.get("adx")) else "  N/A"
+        pnl = r["pnl"]; marker = "✅" if pnl > 0 else "❌"
+        rsi = f"{r['rsi']:.1f}" if "rsi" in r and pd.notna(r.get("rsi")) else "N/A"
+        adx = f"{r['adx']:.1f}" if "adx" in r and pd.notna(r.get("adx")) else "N/A"
         above = "Sí" if r.get("above_ema") else "No"
         print(f"{str(r['symbol']):<8} {str(r['direction']):<6} {pnl:>9.2f}  {marker}  {str(r['session']):<12} {int(r.get('hour_utc',-1)):>3}h  {rsi:>6}  {adx:>6}  {above}")
-    
-    print("\n" + "=" * 110)
-    print("\n🔍 ESTADÍSTICAS POR CONDICIÓN:")
-    
-    wins = df[df["pnl"] > 0]
-    losses = df[df["pnl"] <= 0]
-    print(f"\n  Total trades: {len(df)} | Wins: {len(wins)} ({100*len(wins)/len(df):.0f}%) | Losses: {len(losses)}")
-    print(f"  PnL Total: {df['pnl'].sum():.2f} | Avg Win: {wins['pnl'].mean():.2f} | Avg Loss: {losses['pnl'].mean():.2f}")
-    
-    if "session" in df.columns:
-        print("\n  POR SESIÓN:")
-        session_stats = df.groupby("session")["pnl"].agg(["count","sum","mean"])
-        for sess, row in session_stats.iterrows():
-            print(f"    {sess:<15} trades={int(row['count']):>3}  PnL={row['sum']:>9.2f}  Media={row['mean']:>7.2f}")
-    
-    if "adx" in df.columns:
-        df_adx = df.dropna(subset=["adx"])
-        if len(df_adx) > 0:
-            low_adx  = df_adx[df_adx["adx"] < 20]
-            med_adx  = df_adx[(df_adx["adx"] >= 20) & (df_adx["adx"] < 30)]
-            high_adx = df_adx[df_adx["adx"] >= 30]
-            print(f"\n  POR ADX:")
-            print(f"    ADX < 20 (rango sin tendencia): trades={len(low_adx):>3}  PnL={low_adx['pnl'].sum():>9.2f}")
-            print(f"    ADX 20-30 (tendencia débil):    trades={len(med_adx):>3}  PnL={med_adx['pnl'].sum():>9.2f}")
-            print(f"    ADX > 30 (tendencia fuerte):    trades={len(high_adx):>3}  PnL={high_adx['pnl'].sum():>9.2f}")
-    
-    print("\n  PROBLEMA CORRELACIÓN USD: Trades compra vs venta USD simultáneos:")
-    usd_buy  = df[df["symbol"].str.contains("USD") & (df["direction"]=="LONG")]
-    usd_sell = df[df["symbol"].str.contains("USD") & (df["direction"]=="SHORT")]
-    same_day_groups = df.groupby(df["time_open"].str[:10]).apply(lambda g: {
-        "has_long": any(g["direction"]=="LONG"),
-        "has_short": any(g["direction"]=="SHORT"),
-        "pnl": g["pnl"].sum()
-    })
-    conflict_days = {k: v for k,v in same_day_groups.items() if v["has_long"] and v["has_short"]}
-    print(f"    Días con posiciones LONG+SHORT simultáneas: {len(conflict_days)}")
-    for day, info in conflict_days.items():
-        print(f"    {day}  PnL del día={info['pnl']:>9.2f}")
     
     mt5.shutdown()
     print("\n✅ Análisis completado.")

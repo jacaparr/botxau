@@ -175,7 +175,9 @@ def notify_daily_summary(balance: float, equity: float,
         f"<b>PnL hoy:</b> ${pnl_today:+.2f}\n"
         f"\n🕐 {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M UTC')}"
     )
-    _send_message(text)
+def notify_weekly_report(report_text: str):
+    """Notifica el reporte semanal de análisis."""
+    _send_message(report_text)
 
 
 def notify_reconnection(attempt: int, success: bool):

@@ -33,6 +33,7 @@ if sys.stdout.encoding.lower() != 'utf-8':
 
 import logger
 import telegram_notify as tg
+from analyze_losses import generate_weekly_report
 import strategy_eurusd as strat_eur
 import numpy as np
 from dotenv import load_dotenv
@@ -1058,9 +1059,19 @@ def run_bot():
                     else:
                         execute_trade(symbol, base_name, setup, risk_pct, state)
         
-        # Reset diario
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        # Reset diario y Reporte Semanal
+        now_dt = datetime.now(timezone.utc)
+        today = now_dt.strftime("%Y-%m-%d")
         if state.get("last_trade_date") != today:
+            # 📊 REPORTE SEMANAL: Si es domingo y no se ha enviado el reporte esta semana
+            if now_dt.weekday() == 6: # 6 = Domingo
+                current_week = now_dt.strftime("%Y-%W")
+                if state.get("last_weekly_report") != current_week:
+                    logger.info("📅 Generando reporte semanal automático...")
+                    report = generate_weekly_report()
+                    tg.notify_weekly_report(report)
+                    state["last_weekly_report"] = current_week
+
             state["last_trade_date"] = today
             state["trades_today"] = 0
             state["pnl_today"] = 0.0

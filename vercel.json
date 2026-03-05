@@ -12,8 +12,12 @@
             "destination": "api/index.py"
         },
         {
+            "source": "/dashboard",
+            "destination": "/dashboard.html"
+        },
+        {
             "source": "/(.*)",
-            "destination": "/index.html"
+            "destination": "/dashboard.html"
         }
     ]
 }

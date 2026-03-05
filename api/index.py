@@ -8,8 +8,11 @@ app = Flask(__name__)
 CORS(app)
 
 VPS_URL   = os.environ.get("VPS_URL",   "http://37.60.247.231:5000")
-LOCAL_URL = os.environ.get("LOCAL_URL", "")   # e.g. http://TU_IP:5000 or ngrok URL
+LOCAL_URL = os.environ.get("LOCAL_URL", "https://cindi-excogitative-jaycob.ngrok-free.dev")
 TIMEOUT   = 6
+
+# Header requerido para bypassar la pantalla de advertencia de ngrok free tunnels
+NGROK_HEADERS = {"ngrok-skip-browser-warning": "true", "User-Agent": "stitch-dashboard/7"}
 
 # ─────────────────────────────────────────────────────────────
 # Helpers
@@ -20,7 +23,9 @@ def fetch_status(url, label):
     if not url:
         return {"instance": label, "reachable": False, "reason": "URL no configurada"}
     try:
-        r = requests.get(f"{url}/api/status", timeout=TIMEOUT)
+        # Añadir header ngrok si la URL es de ngrok
+        headers = NGROK_HEADERS if "ngrok" in url else {}
+        r = requests.get(f"{url}/api/status", timeout=TIMEOUT, headers=headers)
         data = r.json()
         data["instance"]  = label
         data["reachable"] = True
@@ -30,7 +35,8 @@ def fetch_status(url, label):
 
 def proxy_get(url, path):
     try:
-        r = requests.get(f"{url}{path}", timeout=TIMEOUT)
+        headers = NGROK_HEADERS if "ngrok" in url else {}
+        r = requests.get(f"{url}{path}", timeout=TIMEOUT, headers=headers)
         return jsonify(r.json())
     except Exception as e:
         return jsonify({"status": "error", "message": str(e), "url": url}), 502

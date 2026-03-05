@@ -27,7 +27,7 @@ except ImportError:
     pass
 
 GITHUB_TOKEN  = os.getenv("GITHUB_TOKEN", "")
-GITHUB_REPO   = os.getenv("GITHUB_REPO", "jaccaparr/botxau")
+GITHUB_REPO   = os.getenv("GITHUB_REPO", "jacaparr/botxau")
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "main")
 BOT_DIR       = Path(__file__).parent
 STATE_FILE    = BOT_DIR / "autoupdate_state.json"
@@ -35,6 +35,7 @@ CHECK_INTERVAL = 30 * 60  # 30 minutos
 
 # Archivos que se actualizan automáticamente (los más críticos)
 FILES_TO_UPDATE = [
+    # Bot core
     "bot_mt5.py",
     "config.py",
     "strategy_eurusd.py",
@@ -42,6 +43,11 @@ FILES_TO_UPDATE = [
     "indicators.py",
     "logger.py",
     "analyze_losses.py",
+    # Dashboard
+    "dashboard_mt5.py",
+    "index.html",
+    "requirements.txt",
+    "templates/index_mt5.html",
 ]
 
 # SSL sin verificación (necesario en algunos VPS Windows)
@@ -107,14 +113,30 @@ def save_state(state):
 
 
 def restart_bot():
-    """Mata los procesos python del bot para que watchdog los reinicie."""
-    log("🔄 Reiniciando bot...")
+    """Mata todos los procesos python y relanza el dashboard actualizado."""
+    log("🔄 Reiniciando bot y dashboard...")
     try:
+        # Matar todos los procesos Python (bot + dashboard)
         subprocess.run(
             ["taskkill", "/F", "/IM", "python.exe"],
             capture_output=True, text=True
         )
-        log("   ✅ Proceso Python detenido — watchdog reiniciará el bot en 30s")
+        log("   ✅ Procesos Python detenidos")
+        time.sleep(2)
+
+        # Relanzar dashboard_mt5.py en background
+        dashboard = BOT_DIR / "dashboard_mt5.py"
+        if dashboard.exists():
+            subprocess.Popen(
+                ["python", str(dashboard)],
+                cwd=str(BOT_DIR),
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+            )
+            log("   ✅ Dashboard relanzado en puerto 5000")
+        else:
+            log("   ⚠️ dashboard_mt5.py no encontrado")
+
+        log("   ✅ watchdog reiniciará bot_mt5.py automáticamente")
     except Exception as e:
         log(f"   ⚠️ Error al reiniciar: {e}")
 

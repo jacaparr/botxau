@@ -7,7 +7,7 @@
   "last_trade_date": "2026-03-05",
   "daily_summary_sent": "",
   "virtual_positions": [],
-  "last_update": "2026-03-05T22:00:26.258422+00:00",
+  "last_update": "2026-03-05T22:03:48.380587+00:00",
   "running": true,
   "radar": [
     {
@@ -20,8 +20,8 @@
   ],
   "account": {
     "balance": 102526.61,
-    "equity": 102418.98,
-    "profit": -107.63,
+    "equity": 102381.88,
+    "profit": -144.73,
     "currency": "EUR"
   },
   "live_positions": [
@@ -30,42 +30,42 @@
       "type": "SELL",
       "volume": 1.05,
       "price_open": 0.70085,
-      "profit": -9.95
+      "profit": -26.23
     },
     {
       "symbol": "EURUSD",
       "type": "SELL",
       "volume": 0.14,
       "price_open": 1.1610800000000001,
-      "profit": 0.6
+      "profit": 1.45
     },
     {
       "symbol": "USDCAD",
       "type": "BUY",
       "volume": 0.24,
       "price_open": 1.3686,
-      "profit": -17.85
+      "profit": -23.0
     },
     {
       "symbol": "USDJPY",
       "type": "SELL",
       "volume": 0.14,
       "price_open": 157.249,
-      "profit": -24.72
+      "profit": -30.22
     },
     {
       "symbol": "GBPUSD",
       "type": "SELL",
       "volume": 0.11,
       "price_open": 1.33571,
-      "profit": -4.74
+      "profit": -7.96
     },
     {
       "symbol": "USDCHF",
       "type": "BUY",
       "volume": 0.12,
       "price_open": 0.78049,
-      "profit": 3.58
+      "profit": 9.66
     }
   ],
   "closed_trades_today": [
@@ -498,9 +498,9 @@
   "prop_peak_balance": 109743.54,
   "prop_starting_balance": 100000.0,
   "prop_firm": {
-    "daily_dd": -0.53,
+    "daily_dd": -0.5,
     "daily_dd_limit": 4.0,
-    "total_dd": 6.67,
+    "total_dd": 6.71,
     "total_dd_limit": 8.0,
     "current_risk": 0.1,
     "consecutive_losses": 0,

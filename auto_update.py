@@ -8,7 +8,7 @@ Si los hay, descarga los archivos actualizados y reinicia el bot.
 CONFIGURACIÓN (una sola vez):
   Añadir al .env del VPS:
     GITHUB_TOKEN=ghp_XXXXXXXXXXXXXXXXXXXX
-    GITHUB_REPO=jaccaparr/botxau
+    GITHUB_REPO=jacaparr/botxau
     GITHUB_BRANCH=main
 """
 

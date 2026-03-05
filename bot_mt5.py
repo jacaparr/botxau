@@ -95,7 +95,7 @@ def _adx(high: pd.Series, low: pd.Series, close: pd.Series, length: int = 14) ->
 SYMBOL_CONFIGS = {
     "XAUUSD": {
         "aliases":     ["XAUUSD", "GOLD", "XAUUSDm", "XAUUSD.a", "GOLD.a"],
-        "strategy":    "TREND_MOMENTUM_D1",  # Nueva estrategia v6
+        "strategy":    "HYBRID_D1_ICT",  # v7: TREND_MOMENTUM_D1 + ICT Silver Bullet filtrado por D1
         "live":        True,
         "timeframe":   mt5.TIMEFRAME_H1,
         "adx_min":     20.0,
@@ -816,6 +816,60 @@ def get_signal_trend_momentum_d1(symbol: str, base_name: str) -> TradeSetup | No
 
     return None
 
+
+def get_signal_hybrid_d1_ict(symbol: str, base_name: str) -> TradeSetup | None:
+    """
+    HYBRID v7 — D1 macro filter + ICT Silver Bullet (15-16 UTC, prioridad)
+    + TREND_MOMENTUM_D1 fallback para el resto de sesión (07-17 UTC).
+
+    Lógica:
+      - Ventana 15-16 UTC (London-NY overlap, max liquidez XAUUSD):
+          1. Verifica alineación D1 macro (SMA200 + SMA10/50)
+          2. Intenta ICT Silver Bullet (FVG + liquidity sweep)
+          3. Solo ejecuta ICT si la dirección coincide con D1 macro
+      - Resto de sesión (07-15 UTC y 16-17 UTC):
+          Delega directamente a TREND_MOMENTUM_D1 (tiene su propio filtro D1)
+
+    Resultado esperado: +20-28 trades/mes vs 15-20 solo con TREND_MOMENTUM_D1
+    (+5-8 trades extra en ventana ICT, todos filtrados por D1)
+    """
+    now = datetime.now(timezone.utc)
+
+    # No operar lunes
+    if SKIP_MONDAY and now.weekday() == 0:
+        return None
+
+    # ─── Ventana ICT Silver Bullet: 15-16 UTC ────────────────────────────
+    if 15 <= now.hour < 16:
+        # Leer D1 para validar macro tendencia antes de ejecutar ICT
+        df_d1 = get_candles(symbol, mt5.TIMEFRAME_D1, 250)
+        if not df_d1.empty and len(df_d1) >= 210:
+            df_d1['sma200'] = df_d1['close'].rolling(200).mean()
+            df_d1['sma50']  = df_d1['close'].rolling(50).mean()
+            df_d1['sma10']  = df_d1['close'].rolling(10).mean()
+            last_d1  = df_d1.iloc[-1]
+            close_d1 = float(last_d1['close'])
+            sma200   = last_d1['sma200']
+            sma50    = last_d1['sma50']
+            sma10    = last_d1['sma10']
+
+            if not any(pd.isna(v) for v in [sma200, sma50, sma10]):
+                d1_long  = close_d1 > float(sma200) and float(sma10) > float(sma50)
+                d1_short = close_d1 < float(sma200) and float(sma10) < float(sma50)
+
+                if d1_long or d1_short:
+                    ict = get_signal_ict_silver_bullet(symbol, base_name)
+                    if ict:
+                        if (ict.signal == "LONG" and d1_long) or (ict.signal == "SHORT" and d1_short):
+                            logger.info(f"🎯 [HYBRID-ICT] {symbol} | {ict.signal} validado por D1 macro")
+                            return ict
+                        else:
+                            logger.info(f"⛔ [HYBRID-ICT] {symbol} | ICT {ict.signal} bloqueado — contra D1 macro")
+
+    # ─── Fallback: TREND_MOMENTUM_D1 (gestiona su ventana 07-17 UTC) ────
+    return get_signal_trend_momentum_d1(symbol, base_name)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # EJECUCIÓN (Live vs Virtual)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1167,7 +1221,9 @@ def run_bot():
                     setup = get_signal_ensemble(symbol, base_name)
                 elif config["strategy"] == "TREND_MOMENTUM_D1":
                     setup = get_signal_trend_momentum_d1(symbol, base_name)
-                    
+                elif config["strategy"] == "HYBRID_D1_ICT":
+                    setup = get_signal_hybrid_d1_ict(symbol, base_name)
+
                 if setup:
                     # 🔒 FILTRO DE CORRELACIÓN USD: Bloquear si el trade conflicta con posiciones abiertas
                     if config.get("live") and would_conflict_usd(base_name, setup.signal):

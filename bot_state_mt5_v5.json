@@ -7,7 +7,7 @@
   "last_trade_date": "2026-03-05",
   "daily_summary_sent": "",
   "virtual_positions": [],
-  "last_update": "2026-03-05T21:56:26.009274+00:00",
+  "last_update": "2026-03-05T22:00:26.258422+00:00",
   "running": true,
   "radar": [
     {
@@ -15,13 +15,13 @@
       "label": "XAUUSD (HYBRID_D1_ICT)",
       "long_score": 0,
       "short_score": 100,
-      "details": "RSI: 22.2 | ADX: 51.0"
+      "details": "RSI: 21.1 | ADX: 51.0"
     }
   ],
   "account": {
     "balance": 102526.61,
-    "equity": 102427.21,
-    "profit": -99.4,
+    "equity": 102418.98,
+    "profit": -107.63,
     "currency": "EUR"
   },
   "live_positions": [
@@ -30,42 +30,42 @@
       "type": "SELL",
       "volume": 1.05,
       "price_open": 0.70085,
-      "profit": -6.33
+      "profit": -9.95
     },
     {
       "symbol": "EURUSD",
       "type": "SELL",
       "volume": 0.14,
       "price_open": 1.1610800000000001,
-      "profit": 2.29
+      "profit": 0.6
     },
     {
       "symbol": "USDCAD",
       "type": "BUY",
       "volume": 0.24,
       "price_open": 1.3686,
-      "profit": -18.91
+      "profit": -17.85
     },
     {
       "symbol": "USDJPY",
       "type": "SELL",
       "volume": 0.14,
       "price_open": 157.249,
-      "profit": -24.19
+      "profit": -24.72
     },
     {
       "symbol": "GBPUSD",
       "type": "SELL",
       "volume": 0.11,
       "price_open": 1.33571,
-      "profit": -2.08
+      "profit": -4.74
     },
     {
       "symbol": "USDCHF",
       "type": "BUY",
       "volume": 0.12,
       "price_open": 0.78049,
-      "profit": 4.37
+      "profit": 3.58
     }
   ],
   "closed_trades_today": [
@@ -498,7 +498,7 @@
   "prop_peak_balance": 109743.54,
   "prop_starting_balance": 100000.0,
   "prop_firm": {
-    "daily_dd": -0.54,
+    "daily_dd": -0.53,
     "daily_dd_limit": 4.0,
     "total_dd": 6.67,
     "total_dd_limit": 8.0,

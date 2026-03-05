@@ -85,66 +85,59 @@ def _adx(high: pd.Series, low: pd.Series, close: pd.Series, length: int = 14) ->
 # CONFIGURACIÓN DE SÍMBOLOS Y ESTRATEGIAS
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ESTRATEGIA ACTIVA: TREND_MOMENTUM_D1 (v6)
-# ─────────────────────────────────────────────────────────────────────────────
-# Solo XAUUSD. Filtro macro D1 con SMA200 + entrada H1 en momentum.
-# Backup de la estrategia anterior: bot_mt5_v5_ensemble_backup.py
-# Para volver a la estrategia anterior: copiar backup sobre este archivo.
-# ─────────────────────────────────────────────────────────────────────────────
 SYMBOL_CONFIGS = {
     "XAUUSD": {
         "aliases":     ["XAUUSD", "GOLD", "XAUUSDm", "XAUUSD.a", "GOLD.a"],
-        "strategy":    "TREND_MOMENTUM_D1",  # Nueva estrategia v6
+        "strategy":    "ENSEMBLE",
         "live":        True,
         "timeframe":   mt5.TIMEFRAME_H1,
         "adx_min":     20.0,
     },
     "XAGUSD": {
         "aliases":     ["XAGUSD", "SILVER", "XAGUSDm", "XAGUSD.a"],
-        "strategy":    "TREND_MOMENTUM_D1",
-        "live":        False,  # DESACTIVADO v6: solo XAUUSD
+        "strategy":    "ENSEMBLE",
+        "live":        True,
         "timeframe":   mt5.TIMEFRAME_H1,
         "adx_min":     20.0,
     },
     "EURUSD": {
         "aliases":     ["EURUSD", "EURUSDm", "EURUSD.a"],
-        "strategy":    "TREND_MOMENTUM_D1",
-        "live":        False,  # DESACTIVADO v6: solo XAUUSD
+        "strategy":    "ENSEMBLE",
+        "live":        True,
         "timeframe":   mt5.TIMEFRAME_H1,
         "adx_min":     20.0,
     },
     "GBPUSD": {
         "aliases":     ["GBPUSD", "GBPUSDm", "GBPUSD.a"],
-        "strategy":    "TREND_MOMENTUM_D1",
+        "strategy":    "ENSEMBLE",
         "live":        False,  # DESACTIVADO: MaxDD 9.22% supera límite prop 8%
         "timeframe":   mt5.TIMEFRAME_H1,
         "adx_min":     20.0,
     },
     "USDJPY": {
         "aliases":     ["USDJPY", "USDJPYm", "USDJPY.a"],
-        "strategy":    "TREND_MOMENTUM_D1",
-        "live":        False,  # DESACTIVADO v6: solo XAUUSD
+        "strategy":    "ENSEMBLE",
+        "live":        True,
         "timeframe":   mt5.TIMEFRAME_H1,
         "adx_min":     20.0,
     },
     "AUDUSD": {
         "aliases":     ["AUDUSD", "AUDUSDm", "AUDUSD.a"],
-        "strategy":    "TREND_MOMENTUM_D1",
-        "live":        False,  # DESACTIVADO v6: solo XAUUSD
+        "strategy":    "ENSEMBLE",
+        "live":        True,
         "timeframe":   mt5.TIMEFRAME_H1,
         "adx_min":     20.0,
     },
     "USDCAD": {
         "aliases":     ["USDCAD", "USDCADm", "USDCAD.a"],
-        "strategy":    "TREND_MOMENTUM_D1",
-        "live":        False,  # DESACTIVADO v6: solo XAUUSD
+        "strategy":    "ENSEMBLE",
+        "live":        True,
         "timeframe":   mt5.TIMEFRAME_H1,
         "adx_min":     20.0,
     },
     "USDCHF": {
         "aliases":     ["USDCHF", "USDCHFm", "USDCHF.a"],
-        "strategy":    "TREND_MOMENTUM_D1",
+        "strategy":    "ENSEMBLE",
         "live":        False,  # DESACTIVADO: PF=1.0, rendimiento insignificante
         "timeframe":   mt5.TIMEFRAME_H1,
         "adx_min":     20.0,
@@ -162,18 +155,16 @@ MAX_ENTRY_CANDLES = 4
 
 # Gestión de Riesgo Prop Firm
 BE_TRIGGER_R       = 0.7
-TRAIL_DISTANCE_MULT = 0.5   # Aumentado para D1: dejar más espacio al trailing
-EOD_CLOSE_H        = 18     # 18:00 UTC — da espacio al overlap London-NY completo
+TRAIL_DISTANCE_MULT = 0.4
+EOD_CLOSE_H        = 16
 
 # 🛡️ PROTECCIÓN PROP FIRM (Parámetros configurables via .env)
-# v6: base_risk reducido a 0.5% — SL más amplio (D1) pero menos trades/día
-# Resultado: DD diario máx ~1-1.5% vs 5.77% anterior. Prop firm segura.
 PROP_FIRM = {
     "starting_balance": float(os.getenv("PROP_STARTING_BALANCE", 100000.0)),
     "daily_dd_limit":   float(os.getenv("PROP_DAILY_DD_LIMIT", 0.04)),
     "max_dd_limit":     float(os.getenv("PROP_MAX_DD_LIMIT", 0.08)),
-    "base_risk":        float(os.getenv("PROP_BASE_RISK", 0.50)),   # Era 0.45
-    "reduced_risk":     float(os.getenv("PROP_REDUCED_RISK", 0.10)),  # Era 0.05
+    "base_risk":        float(os.getenv("PROP_BASE_RISK", 0.45)),
+    "reduced_risk":     float(os.getenv("PROP_REDUCED_RISK", 0.05)),
     "max_consecutive_losses": int(os.getenv("PROP_MAX_LOSSES", 2)),
 }
 
@@ -710,112 +701,6 @@ def get_signal_ensemble(symbol: str, base_name: str) -> TradeSetup | None:
     # 2. Si no hay ICT, usar la Tendencia Potente (Frecuencia)
     return get_signal_indicator_trend(symbol, base_name)
 
-
-def get_signal_trend_momentum_d1(symbol: str, base_name: str) -> TradeSetup | None:
-    """
-    v6 — Trend-Momentum con filtro macro D1 + entrada precisa H1.
-
-    Lógica:
-      1. D1: precio > SMA200 = macro uptrend | precio < SMA200 = macro downtrend
-      2. D1: SMA10 > SMA50 (uptrend) o SMA10 < SMA50 (downtrend) = momentum D1 alineado
-      3. H1: vela que rompe el máximo del pullback reciente (uptrend)
-             o el mínimo (downtrend) con RSI > 50 / < 50 y ADX >= 20
-      4. SL: bajo el low de la vela H1 de entrada (+ buffer ATR x0.2)
-      5. TP: dinámico = 2.5x ATR D1 (amplio para dejar correr la tendencia)
-
-    Ventaja vs estrategia anterior:
-      - Solo 1-2 trades/día máximo → DD diario máx ~1%
-      - SL basado en estructura real del mercado (no ratio fijo)
-      - Filtro macro D1 elimina entradas contra-tendencia
-    """
-    now = datetime.now(timezone.utc)
-
-    # No operar lunes
-    if SKIP_MONDAY and now.weekday() == 0:
-        return None
-
-    # Sólo durante sesión activa: Londres + London-NY overlap (7-17 UTC)
-    if not (7 <= now.hour < 17):
-        return None
-
-    # ─── 1. FILTRO MACRO D1: SMA200 ───────────────────────────────────────
-    df_d1 = get_candles(symbol, mt5.TIMEFRAME_D1, 250)
-    if df_d1.empty or len(df_d1) < 210:
-        return None
-
-    df_d1['sma200'] = df_d1['close'].rolling(200).mean()
-    df_d1['sma50']  = df_d1['close'].rolling(50).mean()
-    df_d1['sma10']  = df_d1['close'].rolling(10).mean()
-    df_d1['atr_d1'] = _atr(df_d1['high'], df_d1['low'], df_d1['close'], 14)
-
-    last_d1 = df_d1.iloc[-1]
-    close_d1 = float(last_d1['close'])
-    sma200   = float(last_d1['sma200'])
-    sma50    = float(last_d1['sma50'])
-    sma10    = float(last_d1['sma10'])
-    atr_d1   = float(last_d1['atr_d1'])
-
-    if any(pd.isna(v) for v in [sma200, sma50, sma10, atr_d1]):
-        return None
-
-    macro_long  = close_d1 > sma200
-    macro_short = close_d1 < sma200
-
-    # ─── 2. CONFIRMACIÓN MOMENTUM D1: SMA10 vs SMA50 ─────────────────────
-    sma_long  = macro_long  and sma10 > sma50
-    sma_short = macro_short and sma10 < sma50
-
-    if not sma_long and not sma_short:
-        return None  # Momentum D1 no confirmado
-
-    # ─── 3. ENTRADA H1: Vela de momentum rompiendo el pullback ───────────
-    df_h1 = get_candles(symbol, mt5.TIMEFRAME_H1, 60)
-    if df_h1.empty or len(df_h1) < 20:
-        return None
-
-    df_h1['ema50'] = _ema(df_h1['close'], 50)
-    df_h1['rsi']   = _rsi(df_h1['close'], 14)
-    df_h1['adx']   = _adx(df_h1['high'], df_h1['low'], df_h1['close'])
-    df_h1['atr']   = _atr(df_h1['high'], df_h1['low'], df_h1['close'])
-
-    last_h1  = df_h1.iloc[-1]
-    close_h1 = float(last_h1['close'])
-    low_h1   = float(last_h1['low'])
-    high_h1  = float(last_h1['high'])
-    rsi_h1   = float(last_h1['rsi'])
-    adx_h1   = float(last_h1['adx'])
-    ema50_h1 = float(last_h1['ema50'])
-    atr_h1   = float(last_h1['atr'])
-
-    # ADX debe confirmar tendencia en H1 también
-    if adx_h1 < 20:
-        return None
-
-    # Referencia del pullback: max/min de las últimas 5 velas H1 (excluyendo la actual)
-    recent = df_h1.iloc[-6:-1]
-
-    if sma_long:
-        pullback_high = float(recent['high'].max())
-        # Señal LONG: cierra por encima del pullback + RSI alcista + precio sobre EMA50
-        if close_h1 > pullback_high and rsi_h1 > 50 and close_h1 > ema50_h1:
-            entry = close_h1
-            sl    = low_h1 - atr_h1 * 0.2   # Buffer bajo el mínimo de la vela
-            tp    = entry + atr_d1 * 2.5     # Target 2.5x ATR diario
-            logger.info(f"📈 [D1-LONG] {symbol} | SMA200:{sma200:.0f} | RSI:{rsi_h1:.1f} | ADX:{adx_h1:.1f}")
-            return TradeSetup("LONG", entry, sl, tp)
-
-    elif sma_short:
-        pullback_low = float(recent['low'].min())
-        # Señal SHORT: cierra por debajo del pullback + RSI bajista + precio bajo EMA50
-        if close_h1 < pullback_low and rsi_h1 < 50 and close_h1 < ema50_h1:
-            entry = close_h1
-            sl    = high_h1 + atr_h1 * 0.2
-            tp    = entry - atr_d1 * 2.5
-            logger.info(f"📉 [D1-SHORT] {symbol} | SMA200:{sma200:.0f} | RSI:{rsi_h1:.1f} | ADX:{adx_h1:.1f}")
-            return TradeSetup("SHORT", entry, sl, tp)
-
-    return None
-
 # ─────────────────────────────────────────────────────────────────────────────
 # EJECUCIÓN (Live vs Virtual)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1165,8 +1050,6 @@ def run_bot():
                     setup = get_signal_indicator_trend(symbol, base_name)
                 elif config["strategy"] == "ENSEMBLE":
                     setup = get_signal_ensemble(symbol, base_name)
-                elif config["strategy"] == "TREND_MOMENTUM_D1":
-                    setup = get_signal_trend_momentum_d1(symbol, base_name)
                     
                 if setup:
                     # 🔒 FILTRO DE CORRELACIÓN USD: Bloquear si el trade conflicta con posiciones abiertas

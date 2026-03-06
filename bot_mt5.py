@@ -39,7 +39,7 @@ import numpy as np
 from dotenv import load_dotenv
 
 # Cargar variables de entorno (.env)
-load_dotenv()
+load_dotenv(override=True)
 
 # Identidad del bot (LOCAL o VPS)
 BOT_INSTANCE = os.getenv("BOT_INSTANCE", "LOCAL").upper()

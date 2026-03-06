@@ -41,8 +41,19 @@ from dotenv import load_dotenv
 # Cargar variables de entorno (.env)
 load_dotenv(override=True)
 
-# Identidad del bot (LOCAL o VPS)
-BOT_INSTANCE = os.getenv("BOT_INSTANCE", "LOCAL").upper()
+# Identidad del bot — auto-detecta si no hay .env: <50k balance → VPS
+def _detect_instance() -> str:
+    env_val = os.getenv("BOT_INSTANCE", "").upper()
+    if env_val in ("LOCAL", "VPS"):
+        return env_val
+    try:
+        import json as _j
+        s = _j.load(open("bot_state_mt5_v5.json"))
+        return "VPS" if float(s.get("prop_starting_balance", 100000)) < 50000 else "LOCAL"
+    except Exception:
+        return "LOCAL"
+
+BOT_INSTANCE = _detect_instance()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # INDICADORES PUROS (sin pandas_ta, compatible con cualquier Python)

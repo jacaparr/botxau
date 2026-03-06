@@ -38,9 +38,24 @@ CORS(app)
 # ─── Identidad y URLs remotas ───────────────────────────────────────────────
 from dotenv import load_dotenv
 load_dotenv(override=True)
-BOT_INSTANCE = os.getenv("BOT_INSTANCE", "LOCAL").upper()
 VPS_URL   = os.getenv("VPS_URL",   "http://37.60.247.231:5000")
-LOCAL_URL = os.getenv("LOCAL_URL", "")
+LOCAL_URL = os.getenv("LOCAL_URL", "https://cindi-excogitative-jaycob.ngrok-free.dev")
+
+def _detect_instance() -> str:
+    """Auto-detecta LOCAL vs VPS. Primero .env, luego por balance del estado."""
+    env_val = os.getenv("BOT_INSTANCE", "").upper()
+    if env_val in ("LOCAL", "VPS"):
+        return env_val
+    # Auto-detectar por balance del estado: <50k → VPS, >=50k → LOCAL
+    try:
+        with open("bot_state_mt5_v5.json", "r") as f:
+            s = json.load(f)
+        bal = float(s.get("prop_starting_balance", 100000))
+        return "VPS" if bal < 50000 else "LOCAL"
+    except Exception:
+        return "LOCAL"
+
+BOT_INSTANCE = _detect_instance()
 
 # Configuración
 STATE_FILE = "bot_state_mt5_v5.json"

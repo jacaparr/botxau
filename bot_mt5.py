@@ -41,6 +41,9 @@ from dotenv import load_dotenv
 # Cargar variables de entorno (.env)
 load_dotenv()
 
+# Identidad del bot (LOCAL o VPS)
+BOT_INSTANCE = os.getenv("BOT_INSTANCE", "LOCAL").upper()
+
 # ─────────────────────────────────────────────────────────────────────────────
 # INDICADORES PUROS (sin pandas_ta, compatible con cualquier Python)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -199,7 +202,7 @@ def save_trade_history(trade: dict) -> bool:
     fieldnames = [
         "ticket", "symbol", "direction", "volume",
         "time_open", "price_open", "sl", "tp",
-        "time_close", "price_close", "pnl", "balance_after"
+        "time_close", "price_close", "pnl", "balance_after", "source"
     ]
     ticket_id = str(trade.get("ticket", ""))
     
@@ -332,7 +335,8 @@ def save_state(state: dict):
                             "sl": sl,
                             "tp": tp,
                             "pnl": round(d.profit, 2),
-                            "balance_after": round(acct.balance if acct else 0, 2)
+                            "balance_after": round(acct.balance if acct else 0, 2),
+                            "source": BOT_INSTANCE
                         }
                         closed.append(trade_record)
                         # Guardar en CSV solo si es un ticket NUEVO (evita duplicados en cada save_state)

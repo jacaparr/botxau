@@ -37,6 +37,32 @@ Write-Host "`n[3/5] Verificando dependencias (pip install)..." -ForegroundColor 
 python -m pip install -r requirements.txt -q
 Write-Host "  OK - Dependencias al dia." -ForegroundColor Green
 
+# ── 3b. Actualizar .env del VPS ──────────────────────────────
+Write-Host "`n[3b] Actualizando .env del VPS..." -ForegroundColor Yellow
+$envFile = Join-Path $BotDir ".env"
+$envContent = @"
+# Binance Futures TESTNET API Keys
+BINANCE_TESTNET_API_KEY=
+BINANCE_TESTNET_SECRET_KEY=
+USE_TESTNET=True
+
+# Telegram
+TELEGRAM_BOT_TOKEN=8208547121:AAH5CFnVHt2mjwK55UyXHFsTyWEt4wxf5N8
+TELEGRAM_CHAT_ID=5230399966
+
+# Prop Firm - VPS
+BOT_INSTANCE=VPS
+PROP_STARTING_BALANCE=23767.96
+PROP_BASE_RISK=0.50
+PROP_DAILY_DD_LIMIT=0.04
+PROP_MAX_DD_LIMIT=0.08
+
+# URL del bot LOCAL (ngrok)
+LOCAL_URL=https://cindi-excogitative-jaycob.ngrok-free.dev
+"@
+$envContent | Out-File -FilePath $envFile -Encoding UTF8 -Force
+Write-Host "  OK - .env VPS actualizado (BOT_INSTANCE=VPS, LOCAL_URL configurada)." -ForegroundColor Green
+
 # ── 4. Crear watchdog_mt5.bat y actualizar inicio automatico ─
 Write-Host "`n[4/5] Creando watchdog_mt5.bat..." -ForegroundColor Yellow
 

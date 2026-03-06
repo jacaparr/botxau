@@ -291,34 +291,34 @@ def save_state(state: dict):
             deals = mt5.history_deals_get(today, now_utc)
             orders = mt5.history_orders_get(today, now_utc)
             
-            # Mapear positions para obtener datos de apertura
-            pos_map = {}  # ticket -> order data
+            # Mapear órdenes por ticket (NO por position_id, para evitar sobrescritura)
+            order_map = {}  # order_ticket -> order
             if orders:
                 for o in orders:
-                    pos_map[o.position_id] = o
+                    order_map[o.ticket] = o
             
             closed = []
             if deals:
                 for d in deals:
                     if d.entry == 1 and d.symbol:  # 1 = cierre de posición
-                        open_order = pos_map.get(d.position_id)
                         time_open = ""
                         price_open = d.price  # fallback
                         sl = 0.0
                         tp = 0.0
                         
-                        if open_order:
-                            time_open = str(datetime.fromtimestamp(open_order.time_setup, tz=timezone.utc))
-                            sl = round(open_order.sl, 2)
-                            tp = round(open_order.tp, 2)
-                            # Buscar el deal de apertura para precio real
-                            open_deals = mt5.history_deals_get(position=d.position_id)
-                            if open_deals:
-                                for od in open_deals:
-                                    if od.entry == 0:  # 0 = apertura
-                                        price_open = round(od.price, 5)
-                                        time_open = str(datetime.fromtimestamp(od.time, tz=timezone.utc))
-                                        break
+                        # Buscar el deal de APERTURA para obtener precio, SL, TP reales
+                        open_deals = mt5.history_deals_get(position=d.position_id)
+                        if open_deals:
+                            for od in open_deals:
+                                if od.entry == 0:  # 0 = apertura
+                                    price_open = round(od.price, 5)
+                                    time_open = str(datetime.fromtimestamp(od.time, tz=timezone.utc))
+                                    # Buscar la orden de apertura por ticket del deal
+                                    open_order = order_map.get(od.order)
+                                    if open_order:
+                                        sl = round(open_order.sl, 2)
+                                        tp = round(open_order.tp, 2)
+                                    break
                         
                         trade_record = {
                             "ticket": d.position_id,
@@ -799,9 +799,14 @@ def get_signal_trend_momentum_d1(symbol: str, base_name: str) -> TradeSetup | No
         # Señal LONG: cierra por encima del pullback + RSI alcista + precio sobre EMA50
         if close_h1 > pullback_high and rsi_h1 > 50 and close_h1 > ema50_h1:
             entry = close_h1
-            sl    = low_h1 - atr_h1 * 0.2   # Buffer bajo el mínimo de la vela
-            tp    = entry + atr_d1 * 2.5     # Target 2.5x ATR diario
-            logger.info(f"📈 [D1-LONG] {symbol} | SMA200:{sma200:.0f} | RSI:{rsi_h1:.1f} | ADX:{adx_h1:.1f}")
+            sl    = low_h1 - atr_h1 * 0.5   # SL más amplio: 0.5x ATR H1 bajo el mínimo
+            tp    = entry + atr_d1 * 2.5     # Target 2.5x ATR diario → RRR garantizado ≥ 2x
+            # Verificar RRR mínimo 2:1 antes de aceptar la señal
+            sl_dist = abs(entry - sl)
+            tp_dist = abs(tp - entry)
+            if sl_dist <= 0 or tp_dist / sl_dist < 2.0:
+                return None
+            logger.info(f"📈 [D1-LONG] {symbol} | SMA200:{sma200:.0f} | RSI:{rsi_h1:.1f} | ADX:{adx_h1:.1f} | RRR:{tp_dist/sl_dist:.2f}x")
             return TradeSetup("LONG", entry, sl, tp)
 
     elif sma_short:
@@ -809,9 +814,13 @@ def get_signal_trend_momentum_d1(symbol: str, base_name: str) -> TradeSetup | No
         # Señal SHORT: cierra por debajo del pullback + RSI bajista + precio bajo EMA50
         if close_h1 < pullback_low and rsi_h1 < 50 and close_h1 < ema50_h1:
             entry = close_h1
-            sl    = high_h1 + atr_h1 * 0.2
+            sl    = high_h1 + atr_h1 * 0.5
             tp    = entry - atr_d1 * 2.5
-            logger.info(f"📉 [D1-SHORT] {symbol} | SMA200:{sma200:.0f} | RSI:{rsi_h1:.1f} | ADX:{adx_h1:.1f}")
+            sl_dist = abs(entry - sl)
+            tp_dist = abs(tp - entry)
+            if sl_dist <= 0 or tp_dist / sl_dist < 2.0:
+                return None
+            logger.info(f"📉 [D1-SHORT] {symbol} | SMA200:{sma200:.0f} | RSI:{rsi_h1:.1f} | ADX:{adx_h1:.1f} | RRR:{tp_dist/sl_dist:.2f}x")
             return TradeSetup("SHORT", entry, sl, tp)
 
     return None
@@ -892,7 +901,15 @@ def calc_lot_size(symbol: str, sl_dist: float, risk_pct: float) -> float:
     lot = risk_amount / (sl_ticks * tick_value)
     # Redondear al step del lote y clamp
     lot_step = sym_info.volume_step
-    lot = max(sym_info.volume_min, min(sym_info.volume_max, round(lot / lot_step) * lot_step))
+    lot = round(lot / lot_step) * lot_step
+    # Cap de seguridad por símbolo (evita lotes enormes con ATR grande en oro)
+    MAX_LOT_CAPS = {
+        "XAUUSD": 0.20, "GOLD": 0.20, "XAUUSDm": 0.20,
+        "XAGUSD": 0.50, "EURUSD": 2.0, "GBPUSD": 2.0,
+        "USDJPY": 2.0,  "AUDUSD": 2.0, "USDCAD": 2.0, "USDCHF": 2.0,
+    }
+    max_cap = MAX_LOT_CAPS.get(symbol, 1.0)
+    lot = max(sym_info.volume_min, min(min(sym_info.volume_max, max_cap), lot))
     return round(lot, 2)
 
 

@@ -35,8 +35,12 @@ if sys.stdout.encoding.lower() != 'utf-8':
 app = Flask(__name__)
 CORS(app)
 
-# ─── VPS externo (para dual-bot view) ────────────────────────────────────────
-VPS_URL = "http://37.60.247.231:5000"   # URL del bot VPS
+# ─── Identidad y URLs remotas ───────────────────────────────────────────────
+from dotenv import load_dotenv
+load_dotenv(override=True)
+BOT_INSTANCE = os.getenv("BOT_INSTANCE", "LOCAL").upper()
+VPS_URL   = os.getenv("VPS_URL",   "http://37.60.247.231:5000")
+LOCAL_URL = os.getenv("LOCAL_URL", "")
 
 # Configuración
 STATE_FILE = "bot_state_mt5_v5.json"
@@ -232,38 +236,42 @@ def api_health():
 
 @app.route("/api/all-status")
 def api_all_status():
-    """Estado de AMBOS bots. Local=$100k, VPS=$25k."""
-    # ── Bot LOCAL ($100k) ─────────────────────────────────────────────────────
-    local = read_state()
-    local["reachable"]       = True
-    local["trades_today"]    = local.get("trades_today", 0)
-    local["pnl_today"]       = local.get("pnl_today", 0.0)
-    local["prop_firm"]       = local.get("prop_firm", {})
-    local["account"]         = local.get("account", {})
-    local["starting_balance"] = local.get("prop_starting_balance", 100000)
-    local["instance_label"]  = "LOCAL $100K"
+    """Estado de AMBOS bots. Rol-consciente: LOCAL vs VPS."""
+    self_data = read_state()
+    self_data["reachable"]        = True
+    self_data["trades_today"]     = self_data.get("trades_today", 0)
+    self_data["pnl_today"]        = self_data.get("pnl_today", 0.0)
+    self_data["prop_firm"]        = self_data.get("prop_firm", {})
+    self_data["account"]          = self_data.get("account", {})
+    self_data["starting_balance"] = self_data.get("prop_starting_balance", 100000)
 
-    # ── Bot VPS ($25k) — intentar conexión ───────────────────────────────────
-    vps = None
-    if _requests:
-        try:
-            r = _requests.get(VPS_URL + "/api/status", timeout=2)
-            if r.status_code == 200:
-                vps = r.json()
-                vps["reachable"]       = True
-                vps["starting_balance"] = vps.get("prop_starting_balance", 25000)
-                vps["instance_label"]  = "VPS $25K"
-        except Exception:
-            pass
+    def _fetch(url, label, default_starting):
+        """Intenta obtener datos de una URL remota."""
+        if _requests and url:
+            try:
+                r = _requests.get(url + "/api/status", timeout=2)
+                if r.status_code == 200:
+                    d = r.json()
+                    d["reachable"]        = True
+                    d["starting_balance"] = d.get("prop_starting_balance", default_starting)
+                    d["instance_label"]   = label
+                    return d
+            except Exception:
+                pass
+        return {"reachable": False, "instance_label": label,
+                "starting_balance": default_starting,
+                "reason": f"{label} no accesible ({url or 'URL no configurada'})."}
 
-    if vps is None:
-        # VPS no responde: mostrar offline con datos mínimos
-        vps = {
-            "reachable":       False,
-            "instance_label":  "VPS $25K",
-            "starting_balance": 25000,
-            "reason":          "Puerto 5000 del VPS no accesible. Abre el puerto en el firewall del VPS.",
-        }
+    if BOT_INSTANCE == "VPS":
+        # Este servidor ES el VPS → self = vps, remoto = local
+        self_data["instance_label"] = "VPS $25K"
+        vps   = self_data
+        local = _fetch(LOCAL_URL, "LOCAL $100K", 100000)
+    else:
+        # Este servidor ES LOCAL → self = local, remoto = vps
+        self_data["instance_label"] = "LOCAL $100K"
+        local = self_data
+        vps   = _fetch(VPS_URL, "VPS $25K", 25000)
 
     return jsonify({"vps": vps, "local": local})
 

@@ -208,7 +208,7 @@ body{background:var(--bg);background-image:radial-gradient(ellipse 80% 50% at 50
   <div class="account-card local">
     <div class="acct-top">
       <div>
-        <div class="acct-label">🖥️ LOCAL · Demo MT5 · $100K</div>
+        <div class="acct-label" id="local-acct-label">🖥️ LOCAL · Demo MT5 · $100K</div>
         <div class="acct-balance" id="local-balance">$—</div>
         <div class="acct-change" id="local-change">Cargando...</div>
       </div>
@@ -241,7 +241,7 @@ body{background:var(--bg);background-image:radial-gradient(ellipse 80% 50% at 50
   <div class="account-card vps">
     <div class="acct-top">
       <div>
-        <div class="acct-label">🌐 VPS · 37.60.247.231 · $25K</div>
+        <div class="acct-label" id="vps-acct-label">🌐 VPS · 37.60.247.231 · $25K</div>
         <div class="acct-balance" id="vps-balance">$25,000</div>
         <div class="acct-change" id="vps-change" style="color:var(--text3)">Sin conexión</div>
       </div>
@@ -525,8 +525,13 @@ function buildRadar(radar){
 // UPDATE LOCAL
 function updateLocal(d){
   const pf=d.prop_firm||{};
-  const start=d.prop_starting_balance||100000;
-  const bal=Number(pf.peak_balance||d.prop_starting_balance||100000);
+  const start=Number(d.prop_starting_balance||pf.day_start_balance||100000);
+  // current balance: prefer account.balance (real MT5), fallback to peak
+  const bal=Number(d.account&&d.account.balance||pf.peak_balance||d.prop_starting_balance||100000);
+  // update label dynamically
+  const startK=start>=1000?'$'+(start/1000).toFixed(0)+'K':'$'+start;
+  const lbl=document.getElementById('local-acct-label');
+  if(lbl) lbl.textContent='🖥️ LOCAL · Demo MT5 · '+startK;
   const dailyDD=Number(pf.daily_dd||0);
   const totalDD=Number(pf.total_dd||0);
   const pnlT=Number(d.pnl_today||0);
@@ -622,9 +627,13 @@ function updateVps(d,localBal){
   }
   online.style.display='block';offline.style.display='none';
   badge.textContent='ACTIVO';badge.className='badge badge-green';
+  // update VPS label dynamically
+  const startK2=start>=1000?'$'+(start/1000).toFixed(0)+'K':'$'+start;
+  const vpsLbl=document.getElementById('vps-acct-label');
+  if(vpsLbl) vpsLbl.textContent='🌐 VPS · 37.60.247.231 · '+startK2;
 
   const pf=d.prop_firm||{};
-  const bal=Number(pf.peak_balance||start);
+  const bal=Number(d.account&&d.account.balance||pf.peak_balance||start);
   const dailyDD=Number(pf.daily_dd||0);
   const totalDD=Number(pf.total_dd||0);
   const pnlT=Number(d.pnl_today||0);

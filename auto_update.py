@@ -104,7 +104,7 @@ def restart_bot():
         for script in ["dashboard_mt5.py", "bot_mt5.py"]:
             if (BOT_DIR / script).exists():
                 subprocess.Popen(
-                    ["python", str(BOT_DIR / script)],
+                    [sys.executable, str(BOT_DIR / script)],
                     cwd=str(BOT_DIR),
                     creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
                 )
@@ -155,7 +155,7 @@ def watchdog_restart():
         time.sleep(3)
         if (BOT_DIR / "bot_mt5.py").exists():
             subprocess.Popen(
-                ["python", str(BOT_DIR / "bot_mt5.py")],
+                [sys.executable, str(BOT_DIR / "bot_mt5.py")],
                 cwd=str(BOT_DIR),
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
             )

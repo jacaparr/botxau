@@ -109,6 +109,56 @@ def restart_bot():
         log(f"   ⚠️ Error al reiniciar: {e}")
 
 
+def is_bot_running() -> bool:
+    """Comprueba si bot_mt5.py está corriendo via localhost:5000/api/status."""
+    try:
+        import urllib.request as _ur
+        req = _ur.Request("http://localhost:5000/api/status",
+                          headers={"User-Agent": "AutoUpdate-Watchdog/1.0"})
+        with _ur.urlopen(req, timeout=5) as r:
+            data = json.loads(r.read())
+            # is_running=True + last_update reciente (< 5 min)
+            if not data.get("is_running", False):
+                return False
+            last_upd = data.get("last_update", "")
+            if last_upd:
+                try:
+                    from datetime import timezone
+                    ts = datetime.fromisoformat(last_upd.replace("Z", "+00:00"))
+                    age = (datetime.now(timezone.utc) - ts).total_seconds()
+                    if age > 300:  # más de 5 minutos sin actualizar → bot colgado
+                        log(f"⚠️ Bot lleva {int(age)}s sin actualizar (posible cuelgue)")
+                        return False
+                except Exception:
+                    pass
+            return True
+    except Exception:
+        return False
+
+
+def watchdog_restart():
+    """Reinicia solo bot_mt5.py sin matar el resto de procesos."""
+    log("🐕 Watchdog: bot_mt5.py caído — reiniciando solo el bot...")
+    try:
+        # Matar solo bot_mt5.py
+        r = subprocess.run(
+            ["wmic", "process", "where", "CommandLine like '%bot_mt5.py%'", "delete"],
+            capture_output=True, text=True
+        )
+        time.sleep(3)
+        if (BOT_DIR / "bot_mt5.py").exists():
+            subprocess.Popen(
+                ["python", str(BOT_DIR / "bot_mt5.py")],
+                cwd=str(BOT_DIR),
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+            )
+            log("   ✅ bot_mt5.py relanzado por watchdog")
+        else:
+            log("   ❌ bot_mt5.py no encontrado en disco")
+    except Exception as e:
+        log(f"   ⚠️ Error en watchdog_restart: {e}")
+
+
 def check_and_update():
     """Comprueba si hay actualizaciones y las aplica."""
     remote_sha = get_remote_sha()
@@ -144,6 +194,13 @@ def main():
     while True:
         log(f"\n⏳ Esperando {CHECK_INTERVAL // 60} min...")
         time.sleep(CHECK_INTERVAL)
+
+        # — Watchdog: reiniciar bot si se cayó (independiente de git) —
+        if not is_bot_running():
+            log("🔴 Watchdog: bot_mt5.py NO está corriendo")
+            watchdog_restart()
+            time.sleep(15)  # dar tiempo a que arranque antes del check de git
+
         check_and_update()
 
 

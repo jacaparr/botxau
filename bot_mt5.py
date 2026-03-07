@@ -357,6 +357,12 @@ def save_state(state: dict):
                             if save_trade_history(trade_record):
                                 saved_tickets.append(ticket_key)
                                 logger.info(f"💾 Historial guardado: {d.symbol} #{ticket_key} PnL={trade_record['pnl']}")
+                                # Actualizar consecutive_losses para que PropFirmGuard funcione
+                                if float(trade_record.get('pnl', 0)) >= 0:
+                                    state["consecutive_losses"] = 0
+                                else:
+                                    state["consecutive_losses"] = state.get("consecutive_losses", 0) + 1
+                                logger.info(f"📊 Pérdidas consecutivas: {state['consecutive_losses']}")
                         # Limpiar tickets de días anteriores del tracker en memoria
                         if len(saved_tickets) > 500:
                             state["_saved_tickets"] = saved_tickets[-200:]
@@ -427,8 +433,6 @@ def calculate_radar() -> list:
         except:
             continue
             
-    return radar_data
-
     return radar_data
 
 def load_state() -> dict:
@@ -949,12 +953,16 @@ def execute_trade(symbol: str, base_name: str, setup: TradeSetup, risk_pct: floa
             elif s_info.filling_mode & 2: # SYMBOL_FILLING_IOC
                 filling = mt5.ORDER_FILLING_IOC
 
+        _tick = mt5.symbol_info_tick(symbol)
+        if not _tick:
+            logger.error(f"❌ No hay tick para {symbol}, abortando orden")
+            return False
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
             "symbol": symbol,
             "volume": lot,
             "type": mt5.ORDER_TYPE_BUY if setup.signal == "LONG" else mt5.ORDER_TYPE_SELL,
-            "price": mt5.symbol_info_tick(symbol).ask if setup.signal == "LONG" else mt5.symbol_info_tick(symbol).bid,
+            "price": _tick.ask if setup.signal == "LONG" else _tick.bid,
             "sl": round(setup.sl, 2),
             "tp": round(setup.tp, 2),
             "magic": 123456,
@@ -1072,9 +1080,14 @@ def manage_positions(state: dict):
                     logger.info(f"🛡️ BE activado {symbol} | SL → {new_sl:.2f}")
                 continue
             
-            # ── Trailing Stop: perseguir precio a 0.5× rango ──────
+            # ── Trailing Stop: usar ATR H1 como distancia (no sl_dist que ──────
+            # se vuelve ~0 después de activar BE y causa cierre prematuro)
             if sl_at_be or (current_sl > entry if is_long else current_sl < entry):
-                trail_dist = sl_dist * TRAIL_DISTANCE_MULT
+                df_trail = get_candles(symbol, mt5.TIMEFRAME_H1, 20)
+                if df_trail.empty:
+                    continue
+                atr_trail = float(_atr(df_trail['high'], df_trail['low'], df_trail['close']).iloc[-1])
+                trail_dist = max(atr_trail * TRAIL_DISTANCE_MULT, sl_dist * TRAIL_DISTANCE_MULT)
                 if is_long:
                     new_trail_sl = curr_price - trail_dist
                     if new_trail_sl > current_sl:
@@ -1089,7 +1102,7 @@ def manage_positions(state: dict):
                         res = mt5.order_send(modify_request)
                         if res and res.retcode == mt5.TRADE_RETCODE_DONE:
                             tg.notify_trailing_stop(symbol, new_trail_sl)
-                            logger.info(f"📈 Trailing {symbol} | SL → {new_trail_sl:.2f}")
+                            logger.info(f"📈 Trailing {symbol} | SL → {new_trail_sl:.2f} (ATR trail: {trail_dist:.2f})")
                 else:
                     new_trail_sl = curr_price + trail_dist
                     if new_trail_sl < current_sl:
@@ -1104,7 +1117,7 @@ def manage_positions(state: dict):
                         res = mt5.order_send(modify_request)
                         if res and res.retcode == mt5.TRADE_RETCODE_DONE:
                             tg.notify_trailing_stop(symbol, new_trail_sl)
-                            logger.info(f"📈 Trailing {symbol} | SL → {new_trail_sl:.2f}")
+                            logger.info(f"📈 Trailing {symbol} | SL → {new_trail_sl:.2f} (ATR trail: {trail_dist:.2f})")
 
     # 2. Gestionar posiciones virtuales (Paper Trading)
     if "virtual_positions" not in state: state["virtual_positions"] = []
@@ -1237,7 +1250,8 @@ def run_bot():
             
             has_pos = False
             if config.get("live"):
-                has_pos = len(mt5.positions_get(symbol=symbol, magic=123456) or []) > 0
+                # MT5 no filtra por magic en positions_get → filtrar en Python
+                has_pos = any(p.magic == 123456 for p in (mt5.positions_get(symbol=symbol) or []))
             else:
                 has_pos = any(p["symbol"] == symbol for p in state.get("virtual_positions", []))
                 

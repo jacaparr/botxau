@@ -326,6 +326,39 @@ def api_auto():
     AUTO_SCHEDULER_ENABLED = enabled
     return jsonify({"status": "success", "auto_enabled": AUTO_SCHEDULER_ENABLED})
 
+@app.route("/api/reset-prop-state", methods=["POST"])
+def api_reset_prop_state():
+    """Resetea los contadores prop firm del estado usando el balance MT5 actual como nuevo punto de partida."""
+    import json as _json, datetime as _dt
+    try:
+        state_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_state_mt5_v5.json")
+        s = _json.load(open(state_file, encoding="utf-8"))
+
+        # Obtener balance actual de MT5
+        try:
+            import MetaTrader5 as mt5
+            mt5.initialize()
+            ai = mt5.account_info()
+            real_balance = float(ai.balance) if ai else float(s.get("prop_day_start_balance", 100000.0))
+            mt5.shutdown()
+        except Exception:
+            real_balance = float(s.get("prop_day_start_balance", 100000.0))
+
+        today = _dt.datetime.utcnow().strftime("%Y-%m-%d")
+        s["prop_starting_balance"]  = 100000.0      # base original prop firm
+        s["prop_peak_balance"]      = real_balance   # pico = balance actual → DD total = 0%
+        s["prop_day_start_balance"] = real_balance   # inicio día = balance actual → DD diario = 0%
+        s["prop_day"]               = today
+        s["consecutive_losses"]     = 0
+        s["can_trade"]              = True
+
+        with open(state_file, "w", encoding="utf-8") as f:
+            _json.dump(s, f, indent=2)
+
+        return jsonify({"ok": True, "new_balance": real_balance, "reset_date": today})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
 @app.route("/api/signals")
 def api_signals():
     """Obtiene datos de velas para el gráfico y proximidad de señales."""

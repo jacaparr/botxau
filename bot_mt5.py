@@ -1222,7 +1222,12 @@ def run_bot():
     # find_symbol una sola vez por símbolo (evita doble llamada a MT5 API)
     active_symbols = {bn: sym for bn in SYMBOL_CONFIGS if (sym := find_symbol(bn))}
     
-    tg.notify_bot_started(list(active_symbols.keys()), PROP_FIRM["base_risk"])
+    # Throttle: solo enviar notificacion de inicio una vez por dia (evita spam en reinicios)
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if state.get("last_started_notify") != today_str:
+        tg.notify_bot_started(list(active_symbols.keys()), PROP_FIRM["base_risk"])
+        state["last_started_notify"] = today_str
+        save_state(state)
 
     while True:
         if not ensure_connected(): break

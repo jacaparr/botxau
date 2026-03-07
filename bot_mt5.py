@@ -64,9 +64,12 @@ def _ema(series: pd.Series, length: int) -> pd.Series:
 
 def _rsi(series: pd.Series, length: int = 14) -> pd.Series:
     delta = series.diff()
-    gain  = delta.clip(lower=0).rolling(window=length).mean()
-    loss  = (-delta.clip(upper=0)).rolling(window=length).mean()
-    rs    = gain / loss.replace(0, np.nan)
+    gain  = delta.clip(lower=0)
+    loss  = (-delta.clip(upper=0))
+    # Wilder smoothing (EMA con alpha=1/length) — estándar de la industria
+    avg_gain = gain.ewm(alpha=1/length, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1/length, adjust=False).mean()
+    rs    = avg_gain / avg_loss.replace(0, np.nan)
     return 100 - (100 / (1 + rs))
 
 def _atr(high: pd.Series, low: pd.Series, close: pd.Series, length: int = 14) -> pd.Series:
@@ -682,10 +685,7 @@ def get_signal_ict_silver_bullet(symbol: str, base_name: str) -> TradeSetup | No
 
     # 1. Definir liquidez previa (8:30 - 10:00 AM NY / 13:30 - 15:00 UTC)
     today = now.date()
-    pre_market = df_5m[(df_5m.index.date == today) & (df_5m.index.hour >= 13) & (df_5m.index.minute >= 30) | 
-                       (df_5m.index.date == today) & (df_5m.index.hour == 14)]
-    
-    # Filtro más simple para liquidez pre-sesión
+    # Liquidez de la sesión pre-NY (13:00-15:00 UTC)
     pre_df = df_5m[(df_5m.index.date == today) & (df_5m.index.hour >= 13) & (df_5m.index.hour < 15)]
     if pre_df.empty: return None
     
@@ -707,14 +707,12 @@ def get_signal_ict_silver_bullet(symbol: str, base_name: str) -> TradeSetup | No
         entry = float(c3['close'])
         sl = float(c2['low'])
         tp = entry + abs(entry - sl) * 2.0
-        logger.info(f"🎯 ICT Silver Bullet LONG detectado en {symbol}")
         return TradeSetup("LONG", entry, sl, tp)
     
     elif swept_high and fvg_bear:
         entry = float(c3['close'])
         sl = float(c2['high'])
         tp = entry - abs(sl - entry) * 2.0
-        logger.info(f"🎯 ICT Silver Bullet SHORT detectado en {symbol}")
         return TradeSetup("SHORT", entry, sl, tp)
 
     return None
@@ -806,8 +804,9 @@ def get_signal_trend_momentum_d1(symbol: str, base_name: str) -> TradeSetup | No
     ema50_h1 = float(last_h1['ema50'])
     atr_h1   = float(last_h1['atr'])
 
-    # ADX debe confirmar tendencia en H1 también
-    if adx_h1 < 20:
+    # ADX debe confirmar tendencia en H1 también (usa adx_min del config, no hardcoded)
+    adx_min_cfg = config.get("adx_min", 20.0)
+    if adx_h1 < adx_min_cfg:
         return None
 
     # Referencia del pullback: max/min de las últimas 5 velas H1 (excluyendo la actual)
@@ -889,7 +888,7 @@ def get_signal_hybrid_d1_ict(symbol: str, base_name: str) -> TradeSetup | None:
                     ict = get_signal_ict_silver_bullet(symbol, base_name)
                     if ict:
                         if (ict.signal == "LONG" and d1_long) or (ict.signal == "SHORT" and d1_short):
-                            logger.info(f"🎯 [HYBRID-ICT] {symbol} | {ict.signal} validado por D1 macro")
+                            logger.info(f"🎯 ICT Silver Bullet {ict.signal} detectado en {symbol} | validado D1 macro")
                             return ict
                         else:
                             logger.info(f"⛔ [HYBRID-ICT] {symbol} | ICT {ict.signal} bloqueado — contra D1 macro")
@@ -1220,7 +1219,8 @@ def would_conflict_usd(base_name: str, signal: str) -> bool:
 def run_bot():
     if not connect_mt5(): return
     state = load_state()
-    active_symbols = {bn: find_symbol(bn) for bn in SYMBOL_CONFIGS if find_symbol(bn)}
+    # find_symbol una sola vez por símbolo (evita doble llamada a MT5 API)
+    active_symbols = {bn: sym for bn in SYMBOL_CONFIGS if (sym := find_symbol(bn))}
     
     tg.notify_bot_started(list(active_symbols.keys()), PROP_FIRM["base_risk"])
 

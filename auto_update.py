@@ -65,7 +65,7 @@ def git_pull() -> bool:
     """Ejecuta git pull en el directorio del bot."""
     try:
         # Descartar cambios en archivos de runtime para evitar conflictos
-        for runtime_file in ["trade_history.csv", "autoupdate_state.json"]:
+        for runtime_file in ["trade_history.csv", "autoupdate_state.json", "bot_state_mt5_v5.json"]:
             subprocess.run(
                 ["git", "checkout", "--", runtime_file],
                 capture_output=True, cwd=str(BOT_DIR)
@@ -145,9 +145,6 @@ def main():
 if __name__ == "__main__":
     main()
 
-
-import os, ssl, json, subprocess, time, sys
-import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 

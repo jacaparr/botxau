@@ -690,7 +690,7 @@ async function fetchAll(){
     const localBal=updateLocal(loc);
     updateVps(vps,localBal||100000);
 
-    const trades=loc.trade_history||[];
+    const trades=(loc.trade_history||[]).filter(t=>(t.symbol||'').toUpperCase().includes('XAU'));
     buildTable(trades);
     buildChart(trades);
 

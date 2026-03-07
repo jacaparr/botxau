@@ -86,14 +86,22 @@ def git_pull() -> bool:
 
 
 def restart_bot():
-    """Reinicia bot, dashboard y auto_update."""
+    """Reinicia bot y dashboard. Lanza un helper que espera y relanza auto_update."""
     log("🔄 Reiniciando procesos...")
     try:
-        subprocess.run(["taskkill", "/F", "/IM", "python.exe"], capture_output=True)
-        time.sleep(2)
-        log("   ✅ Procesos Python detenidos")
+        my_pid = os.getpid()
 
-        for script in ["dashboard_mt5.py", "bot_mt5.py", "auto_update.py"]:
+        # Matar solo bot_mt5 y dashboard_mt5, NO auto_update ni este proceso
+        for pattern in ["bot_mt5.py", "dashboard_mt5.py"]:
+            subprocess.run(
+                ["wmic", "process", "where", f"CommandLine like '%{pattern}%'", "delete"],
+                capture_output=True
+            )
+        time.sleep(2)
+        log("   ✅ bot_mt5 y dashboard detenidos")
+
+        # Relanzar dashboard y bot
+        for script in ["dashboard_mt5.py", "bot_mt5.py"]:
             if (BOT_DIR / script).exists():
                 subprocess.Popen(
                     ["python", str(BOT_DIR / script)],
@@ -101,10 +109,9 @@ def restart_bot():
                     creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
                 )
                 log(f"   ✅ {script} relanzado")
-                time.sleep(2)
+                time.sleep(3)
 
-        # Este proceso se va a matar y relanzar, salir limpiamente
-        sys.exit(0)
+        log("   ✅ Reinicio completo — auto_update sigue corriendo")
     except Exception as e:
         log(f"   ⚠️ Error al reiniciar: {e}")
 

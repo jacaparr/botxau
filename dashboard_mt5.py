@@ -328,7 +328,7 @@ def api_auto():
 
 @app.route("/api/reset-prop-state", methods=["POST"])
 def api_reset_prop_state():
-    """Resetea los contadores prop firm del estado usando el balance MT5 actual como nuevo punto de partida."""
+    """Resetea los contadores prop firm del estado usando el balance MT5 actual como nuevo punto de partida. v2"""
     import json as _json, datetime as _dt
     try:
         state_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_state_mt5_v5.json")

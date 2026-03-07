@@ -118,7 +118,12 @@ Start-Sleep 3
 
 Start-Process -FilePath "python" -ArgumentList "bot_mt5.py" `
     -WorkingDirectory $BotDir -WindowStyle Minimized
-Start-Sleep 4
+Start-Sleep 3
+
+Start-Process -FilePath "python" -ArgumentList "auto_update.py" `
+    -WorkingDirectory $BotDir -WindowStyle Minimized
+Write-Host "  Auto-updater lanzado (git pull cada 30 min)" -ForegroundColor Cyan
+Start-Sleep 2
 
 # Verificar procesos activos
 $pProcs = Get-Process python -ErrorAction SilentlyContinue

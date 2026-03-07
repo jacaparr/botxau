@@ -23,7 +23,7 @@ GITHUB_REPO   = os.getenv("GITHUB_REPO", "jacaparr/botxau")
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "main")
 BOT_DIR       = Path(__file__).parent
 STATE_FILE    = BOT_DIR / "autoupdate_state.json"
-CHECK_INTERVAL = 30 * 60  # 30 minutos
+CHECK_INTERVAL = 10 * 60  # 10 minutos
 
 _SSL = ssl.create_default_context()
 _SSL.check_hostname = False

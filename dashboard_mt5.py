@@ -222,6 +222,12 @@ def api_status():
     else:
         data["trade_history"] = []
 
+    # Filtrar solo trades de XAUUSD
+    data["trade_history"] = [
+        t for t in data.get("trade_history", [])
+        if "XAU" in str(t.get("symbol", "")).upper()
+    ]
+
     # Añadir proyecciones del estudio (50% reinversión)
     data["projections"] = {
         "year_1": 14363,
@@ -289,6 +295,24 @@ def api_all_status():
         vps   = _fetch(VPS_URL, "VPS $25K", 25000)
 
     return jsonify({"vps": vps, "local": local})
+
+@app.route("/api/git-pull", methods=["POST"])
+def api_git_pull():
+    """Trigger a git pull on this server instance (for remote updates)."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["git", "pull", "origin", "main"],
+            capture_output=True, text=True, timeout=30,
+            cwd=os.path.dirname(os.path.abspath(__file__))
+        )
+        return jsonify({
+            "ok": result.returncode == 0,
+            "stdout": result.stdout[-500:] if result.stdout else "",
+            "stderr": result.stderr[-200:] if result.stderr else ""
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
 
 @app.route("/api/schedule")
 def api_schedule():

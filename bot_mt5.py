@@ -805,7 +805,7 @@ def get_signal_trend_momentum_d1(symbol: str, base_name: str) -> TradeSetup | No
     atr_h1   = float(last_h1['atr'])
 
     # ADX debe confirmar tendencia en H1 también (usa adx_min del config, no hardcoded)
-    adx_min_cfg = config.get("adx_min", 20.0)
+    adx_min_cfg = SYMBOL_CONFIGS[base_name].get("adx_min", 20.0)
     if adx_h1 < adx_min_cfg:
         return None
 
@@ -1038,7 +1038,7 @@ def manage_positions(state: dict):
             if sl_dist <= 0:
                 continue
             
-            # ── Cierre EOD (16:00 UTC) ─────────────────────────────
+            # ── Cierre EOD (18:00 UTC) ─────────────────────────────
             if now.hour >= EOD_CLOSE_H:
                 close_request = {
                     "action": mt5.TRADE_ACTION_DEAL,

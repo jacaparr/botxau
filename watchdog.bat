@@ -19,13 +19,23 @@ REM ═════════════════════════�
 
 title BOT XAUUSD - Watchdog v5 (Auto-Update)
 
+REM Matar instancias antiguas al arrancar (evita duplicados tras reinicio VPS)
+taskkill /F /IM python.exe /FI "WINDOWTITLE eq AutoUpdater" 2>nul
+taskkill /F /IM python.exe /FI "WINDOWTITLE eq Dashboard" 2>nul
+timeout /t 2 /nobreak >nul
+
 REM Iniciar el auto-updater en segundo plano (ventana minimizada)
 echo [%date% %time%] Iniciando auto-updater en segundo plano...
 start "AutoUpdater" /min python auto_update.py
 
+REM Iniciar el dashboard en segundo plano (ventana minimizada)
+echo [%date% %time%] Iniciando dashboard en segundo plano...
+start "Dashboard" /min python dashboard_mt5.py
+
 echo.
 echo ═══════════════════════════════════════════════
-echo   Auto-Updater activo (GitHub cada 30 min)
+echo   Auto-Updater activo (GitHub cada 10 min)
+echo   Dashboard activo en puerto 5000
 echo ═══════════════════════════════════════════════
 echo.
 

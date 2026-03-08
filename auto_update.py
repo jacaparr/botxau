@@ -144,24 +144,34 @@ def is_bot_running() -> bool:
 
 
 def watchdog_restart():
-    """Reinicia solo bot_mt5.py sin matar el resto de procesos."""
-    log("🐕 Watchdog: bot_mt5.py caído — reiniciando solo el bot...")
+    """Reinicia bot_mt5.py Y dashboard_mt5.py sin matar el resto de procesos."""
+    log("🐕 Watchdog: bot caído — reiniciando bot + dashboard...")
     try:
-        # Matar solo bot_mt5.py
-        r = subprocess.run(
-            ["wmic", "process", "where", "CommandLine like '%bot_mt5.py%'", "delete"],
-            capture_output=True, text=True
-        )
-        time.sleep(3)
-        if (BOT_DIR / "bot_mt5.py").exists():
-            subprocess.Popen(
-                [sys.executable, str(BOT_DIR / "bot_mt5.py")],
-                cwd=str(BOT_DIR),
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+        # Matar bot_mt5.py y dashboard_mt5.py usando taskkill (wmic obsoleto en Win11)
+        for pattern in ["bot_mt5.py", "dashboard_mt5.py"]:
+            subprocess.run(
+                ["taskkill", "/F", "/FI", f"WINDOWTITLE eq *{pattern}*"],
+                capture_output=True
             )
-            log("   ✅ bot_mt5.py relanzado por watchdog")
-        else:
-            log("   ❌ bot_mt5.py no encontrado en disco")
+            # También por línea de comandos
+            subprocess.run(
+                ["wmic", "process", "where", f"CommandLine like '%{pattern}%'", "delete"],
+                capture_output=True
+            )
+        time.sleep(3)
+
+        # Relanzar dashboard primero, luego bot
+        for script in ["dashboard_mt5.py", "bot_mt5.py"]:
+            if (BOT_DIR / script).exists():
+                subprocess.Popen(
+                    [sys.executable, str(BOT_DIR / script)],
+                    cwd=str(BOT_DIR),
+                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+                )
+                log(f"   ✅ {script} relanzado por watchdog")
+                time.sleep(3)
+            else:
+                log(f"   ❌ {script} no encontrado en disco")
     except Exception as e:
         log(f"   ⚠️ Error en watchdog_restart: {e}")
 

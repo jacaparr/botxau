@@ -345,7 +345,10 @@ def api_reset_prop_state():
             real_balance = float(s.get("prop_day_start_balance", 100000.0))
 
         today = _dt.datetime.utcnow().strftime("%Y-%m-%d")
-        s["prop_starting_balance"]  = 100000.0      # base original prop firm
+        # Acepta starting_balance del body; si no viene, usa el del .env (PROP_STARTING_BALANCE)
+        body = request.get_json(silent=True) or {}
+        starting_balance = float(body.get("starting_balance", os.getenv("PROP_STARTING_BALANCE", 100000.0)))
+        s["prop_starting_balance"]  = starting_balance
         s["prop_peak_balance"]      = real_balance   # pico = balance actual → DD total = 0%
         s["prop_day_start_balance"] = real_balance   # inicio día = balance actual → DD diario = 0%
         s["prop_day"]               = today
@@ -355,7 +358,7 @@ def api_reset_prop_state():
         with open(state_file, "w", encoding="utf-8") as f:
             _json.dump(s, f, indent=2)
 
-        return jsonify({"ok": True, "new_balance": real_balance, "reset_date": today})
+        return jsonify({"ok": True, "new_balance": real_balance, "starting_balance": starting_balance, "reset_date": today})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
 

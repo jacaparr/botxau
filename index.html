@@ -690,7 +690,17 @@ async function fetchAll(){
     const localBal=updateLocal(loc);
     updateVps(vps,localBal||100000);
 
-    const trades=(loc.trade_history||[]).filter(t=>(t.symbol||'').toUpperCase().includes('XAU'));
+    // Combinar trades de LOCAL + VPS (deduplicar por ticket)
+    const localTrades=(loc.trade_history||[]).map(t=>({...t,_src:'LOCAL'}));
+    const vpsTrades=((vps&&vps.reachable)?((vps.trade_history||[]).concat(vps.closed_trades_today||[])):[] ).map(t=>({...t,_src:'VPS'}));
+    const seenTickets=new Set();
+    const allTrades=[...localTrades,...vpsTrades].filter(t=>{
+      const key=String(t.ticket||t.time_close||Math.random());
+      if(seenTickets.has(key))return false;
+      seenTickets.add(key);
+      return true;
+    });
+    const trades=allTrades.filter(t=>(t.symbol||'').toUpperCase().includes('XAU'));
     buildTable(trades);
     buildChart(trades);
 

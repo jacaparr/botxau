@@ -185,8 +185,10 @@ EOD_CLOSE_H        = 18     # 18:00 UTC — da espacio al overlap London-NY comp
 # 🛡️ PROTECCIÓN PROP FIRM (Parámetros configurables via .env)
 # v6: base_risk reducido a 0.5% — SL más amplio (D1) pero menos trades/día
 # Resultado: DD diario máx ~1-1.5% vs 5.77% anterior. Prop firm segura.
+# Auto-detecta el saldo inicial según instancia: VPS=25K, LOCAL=100K
+_DEFAULT_START_BALANCE = 25000.0 if BOT_INSTANCE == "VPS" else 100000.0
 PROP_FIRM = {
-    "starting_balance": float(os.getenv("PROP_STARTING_BALANCE", 100000.0)),
+    "starting_balance": float(os.getenv("PROP_STARTING_BALANCE", _DEFAULT_START_BALANCE)),
     "daily_dd_limit":   float(os.getenv("PROP_DAILY_DD_LIMIT", 0.04)),
     "max_dd_limit":     float(os.getenv("PROP_MAX_DD_LIMIT", 0.08)),
     "base_risk":        float(os.getenv("PROP_BASE_RISK", 0.50)),   # Era 0.45
@@ -478,10 +480,12 @@ class PropFirmGuard:
         self.balance = acct.balance if acct else PROP_FIRM["starting_balance"]
         self.equity = acct.equity if acct else self.balance
         
-        # Balance de referencia (el más alto registrado o el inicial)
-        self.starting_balance = state.get("prop_starting_balance", PROP_FIRM["starting_balance"])
+        # Siempre usa el saldo inicial del env/código (no del estado) para evitar
+        # que resets manuales con el valor incorrecto corrompan los cálculos de DD
+        self.starting_balance = PROP_FIRM["starting_balance"]
         self.peak_balance = state.get("prop_peak_balance", self.starting_balance)
-        self.peak_balance = max(self.peak_balance, self.balance)
+        # peak_balance NUNCA puede ser menor que starting_balance
+        self.peak_balance = max(self.peak_balance, self.balance, self.starting_balance)
         
         # Balance al inicio del día
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")

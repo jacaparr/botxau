@@ -345,12 +345,15 @@ def api_reset_prop_state():
             real_balance = float(s.get("prop_day_start_balance", 100000.0))
 
         today = _dt.datetime.utcnow().strftime("%Y-%m-%d")
-        # Acepta starting_balance del body; si no viene, usa el del .env (PROP_STARTING_BALANCE)
+        # Acepta starting_balance del body; si no viene, auto-detecta según instancia
         body = request.get_json(silent=True) or {}
-        starting_balance = float(body.get("starting_balance", os.getenv("PROP_STARTING_BALANCE", 100000.0)))
+        default_start = 25000.0 if BOT_INSTANCE == "VPS" else 100000.0
+        starting_balance = float(body.get("starting_balance", os.getenv("PROP_STARTING_BALANCE", default_start)))
         s["prop_starting_balance"]  = starting_balance
-        s["prop_peak_balance"]      = real_balance   # pico = balance actual → DD total = 0%
-        s["prop_day_start_balance"] = real_balance   # inicio día = balance actual → DD diario = 0%
+        # peak_balance = max(saldo actual, starting) — nunca menos que el inicio de la prop firm
+        new_peak = max(real_balance, starting_balance)
+        s["prop_peak_balance"]      = new_peak
+        s["prop_day_start_balance"] = real_balance
         s["prop_day"]               = today
         s["consecutive_losses"]     = 0
         s["can_trade"]              = True
@@ -358,7 +361,7 @@ def api_reset_prop_state():
         with open(state_file, "w", encoding="utf-8") as f:
             _json.dump(s, f, indent=2)
 
-        return jsonify({"ok": True, "new_balance": real_balance, "starting_balance": starting_balance, "reset_date": today})
+        return jsonify({"ok": True, "new_balance": real_balance, "starting_balance": starting_balance, "peak_balance": new_peak, "reset_date": today})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
 

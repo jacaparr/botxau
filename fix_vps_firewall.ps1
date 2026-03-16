@@ -3,7 +3,7 @@
 # Ejecutar en el VPS con PowerShell como Administrador
 # Abre el puerto 5000, instala dependencias y arranca el dashboard
 
-$BOT_DIR = "C:\bot"
+$BOT_DIR = if ($PSScriptRoot -ne "") { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 $PORT    = 5000
 
 Write-Host "=========================================" -ForegroundColor Cyan

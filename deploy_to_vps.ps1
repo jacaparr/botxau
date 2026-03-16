@@ -644,6 +644,7 @@ $p += "dmVfc3RhdGUoc3RhdGUpDQogICAgICAgIHRpbWUuc2xlZXAoNjApDQoNCmRlZiBmaW5kX3N5b
 $p += "LT4gc3RyIHwgTm9uZToNCiAgICBmb3IgbmFtZSBpbiBTWU1CT0xfQ09ORklHU1tiYXNlX25hbWVdLmdldCgiYWxpYXNlcyIsIFti"
 $p += "YXNlX25hbWVdKToNCiAgICAgICAgaWYgbXQ1LnN5bWJvbF9pbmZvKG5hbWUpOiByZXR1cm4gbmFtZQ0KICAgIHJldHVybiBOb25l"
 $p += "DQoNCmlmIF9fbmFtZV9fID09ICJfX21haW5fXyI6DQogICAgcnVuX2JvdCgpDQo="
+$BotDir = if ($PSScriptRoot -ne "") { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 $bytes = [Convert]::FromBase64String([string]::Join("",$p))
-[IO.File]::WriteAllBytes("C:\bot\bot_mt5.py", $bytes)
-Write-Host "OK: bot_mt5.py actualizado!" -ForegroundColor Green
+[IO.File]::WriteAllBytes("$BotDir\bot_mt5.py", $bytes)
+Write-Host "OK: bot_mt5.py actualizado en $BotDir" -ForegroundColor Green

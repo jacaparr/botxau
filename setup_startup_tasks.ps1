@@ -4,8 +4,8 @@
 # Registra bot_mt5.py, dashboard_mt5.py y auto_update.py como tareas
 # programadas que arrancan automaticamente al iniciar Windows.
 
-$BOT_DIR  = "C:\bot"
-$PYTHON   = (Get-Command python -ErrorAction SilentlyContinue).Source
+$BOT_DIR = if ($PSScriptRoot -ne "") { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+$PYTHON  = (Get-Command python -ErrorAction SilentlyContinue).Source
 if (-not $PYTHON) { $PYTHON = "python" }
 
 Write-Host "=========================================" -ForegroundColor Cyan

@@ -4,17 +4,17 @@
 # arranque automáticamente cuando Windows se inicie.
 #
 # EJECUTAR EN EL VPS como Administrador:
-#   powershell -ExecutionPolicy Bypass -File C:\bot\setup_autostart_vps.ps1
+#   powershell -ExecutionPolicy Bypass -File <ruta>\setup_autostart_vps.ps1
 # ═══════════════════════════════════════════════════════════════
 
-$BotDir   = "C:\bot"
+$BotDir = if ($PSScriptRoot -ne "") { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 $WatchDog = "$BotDir\watchdog.bat"
 $TaskName = "BotXAUUSD_Watchdog"
 
 # Verificar que watchdog.bat existe
 if (-not (Test-Path $WatchDog)) {
     Write-Host "ERROR: No se encontro $WatchDog" -ForegroundColor Red
-    Write-Host "Asegurate de estar en C:\bot y tener watchdog.bat" -ForegroundColor Yellow
+    Write-Host "Asegurate de que watchdog.bat existe en $BotDir" -ForegroundColor Yellow
     exit 1
 }
 

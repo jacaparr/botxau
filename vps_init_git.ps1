@@ -3,7 +3,7 @@
 # Ejecutar en el VPS (PowerShell como Admin)
 # UNA SOLA VEZ — después el auto_update.py lo mantiene sincronizado
 
-$BOT_DIR  = "C:\bot"
+$BOT_DIR  = if ($PSScriptRoot -ne "") { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 $REPO_URL = "https://github.com/jacaparr/botxau.git"
 $BRANCH   = "main"
 

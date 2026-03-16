@@ -1,8 +1,9 @@
 # reset_vps_25k.ps1
-# Ejecutar en el VPS via RDP: powershell -File C:\bot\reset_vps_25k.ps1
+# Ejecutar en el VPS via RDP: powershell -File <ruta>\reset_vps_25k.ps1
 # Resetea el estado del bot a $25K limpio (DD = 0%)
 
-Set-Location C:\bot
+$BotDir = if ($PSScriptRoot -ne "") { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+Set-Location $BotDir
 
 Write-Host "Deteniendo bot..." -ForegroundColor Yellow
 Stop-Process -Name python -Force -ErrorAction SilentlyContinue
@@ -63,9 +64,9 @@ print('Risk                  : 0.5% (completo)')
 
 Write-Host ""
 Write-Host "Arrancando bot v7..." -ForegroundColor Green
-Start-Process python -ArgumentList "bot_mt5.py" -WorkingDirectory C:\bot -WindowStyle Minimized
+Start-Process python -ArgumentList "bot_mt5.py" -WorkingDirectory $BotDir -WindowStyle Minimized
 Start-Sleep -Seconds 3
-Start-Process python -ArgumentList "dashboard_mt5.py" -WorkingDirectory C:\bot -WindowStyle Minimized
+Start-Process python -ArgumentList "dashboard_mt5.py" -WorkingDirectory $BotDir -WindowStyle Minimized
 Start-Sleep -Seconds 2
 
 $procs = (Get-Process python -ErrorAction SilentlyContinue).Count

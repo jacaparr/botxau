@@ -357,6 +357,23 @@ def api_reset_prop_state():
         s["prop_day"]               = today
         s["consecutive_losses"]     = 0
         s["can_trade"]              = True
+        s["dd_alert_sent_today"]    = False
+        s["pnl_today"]              = 0.0
+        s["trades_today"]           = 0
+
+        # Resetear también el sub-diccionario prop_firm que el bot lee en runtime
+        s["prop_firm"] = {
+            "daily_dd":           0.0,
+            "daily_dd_limit":     float(s.get("prop_firm", {}).get("daily_dd_limit", 4.0)),
+            "total_dd":           0.0,
+            "total_dd_limit":     float(s.get("prop_firm", {}).get("total_dd_limit", 8.0)),
+            "current_risk":       float(os.getenv("PROP_BASE_RISK", 0.5)),
+            "consecutive_losses": 0,
+            "peak_balance":       new_peak,
+            "day_start_balance":  real_balance,
+            "can_trade":          True,
+            "status_msg":         "OK — reset manual"
+        }
 
         with open(state_file, "w", encoding="utf-8") as f:
             _json.dump(s, f, indent=2)

@@ -484,8 +484,9 @@ class PropFirmGuard:
         # que resets manuales con el valor incorrecto corrompan los cálculos de DD
         self.starting_balance = PROP_FIRM["starting_balance"]
         self.peak_balance = state.get("prop_peak_balance", self.starting_balance)
-        # peak_balance NUNCA puede ser menor que starting_balance
-        self.peak_balance = max(self.peak_balance, self.balance, self.starting_balance)
+        # peak_balance nunca puede ser menor que el balance actual,
+        # pero SÍ puede ser menor que starting_balance tras un reset manual mid-challenge
+        self.peak_balance = max(self.peak_balance, self.balance)
         
         # Balance al inicio del día
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")

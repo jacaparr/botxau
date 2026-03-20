@@ -355,7 +355,7 @@ def api_reset_prop_state():
         s["prop_peak_balance"]      = new_peak
         s["prop_day_start_balance"] = real_balance
         s["prop_day"]               = today
-        s["consecutive_losses"]     = 0
+        s["consecutive_losses"]     = 0  # ← resetea riesgo reducido
         s["can_trade"]              = True
         s["dd_alert_sent_today"]    = False
         s["pnl_today"]              = 0.0
@@ -379,6 +379,94 @@ def api_reset_prop_state():
             _json.dump(s, f, indent=2)
 
         return jsonify({"ok": True, "new_balance": real_balance, "starting_balance": starting_balance, "peak_balance": new_peak, "reset_date": today})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+@app.route("/api/full-restart", methods=["POST"])
+def api_full_restart():
+    """Para el bot, resetea el estado (peak=balance actual, DD=0, risk=0.5%) y lo reinicia."""
+    import json as _json, datetime as _dt, subprocess as _sp
+    try:
+        state_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_state_mt5_v5.json")
+        body = request.get_json(silent=True) or {}
+        default_start = 25000.0 if BOT_INSTANCE == "VPS" else 100000.0
+        starting_balance = float(body.get("starting_balance", os.getenv("PROP_STARTING_BALANCE", default_start)))
+
+        # Leer balance real de MT5
+        try:
+            import MetaTrader5 as mt5
+            mt5.initialize()
+            ai = mt5.account_info()
+            real_balance = float(ai.balance) if ai else starting_balance
+            mt5.shutdown()
+        except Exception:
+            real_balance = starting_balance
+
+        today = _dt.datetime.utcnow().strftime("%Y-%m-%d")
+
+        # 1. Matar bot_mt5.py
+        killed = 0
+        for proc in psutil.process_iter(['pid', 'cmdline']):
+            try:
+                cmd = " ".join(proc.info['cmdline'] or [])
+                if "bot_mt5.py" in cmd:
+                    proc.kill()
+                    killed += 1
+            except Exception:
+                pass
+        import time as _time
+        _time.sleep(2)
+
+        # 2. Escribir estado corregido (peak=balance_actual → total_dd=0 → risk=0.5%)
+        try:
+            with open(state_file, "r", encoding="utf-8") as f:
+                s = _json.load(f)
+        except Exception:
+            s = {}
+
+        new_peak = real_balance  # peak = balance actual → DD = 0%
+        s["prop_starting_balance"]  = starting_balance
+        s["prop_peak_balance"]      = new_peak
+        s["prop_day_start_balance"] = real_balance
+        s["prop_day"]               = today
+        s["consecutive_losses"]     = 0
+        s["can_trade"]              = True
+        s["dd_alert_sent_today"]    = False
+        s["pnl_today"]              = 0.0
+        s["trades_today"]           = 0
+        s["prop_firm"] = {
+            "daily_dd":           0.0,
+            "daily_dd_limit":     4.0,
+            "total_dd":           0.0,
+            "total_dd_limit":     8.0,
+            "current_risk":       float(os.getenv("PROP_BASE_RISK", 0.5)),
+            "consecutive_losses": 0,
+            "peak_balance":       new_peak,
+            "day_start_balance":  real_balance,
+            "can_trade":          True,
+            "status_msg":         "OK — full-restart manual"
+        }
+        with open(state_file, "w", encoding="utf-8") as f:
+            _json.dump(s, f, indent=2)
+
+        # 3. Arrancar bot_mt5.py
+        bot_dir = os.path.dirname(os.path.abspath(__file__))
+        _sp.Popen(
+            ["python", "bot_mt5.py"],
+            cwd=bot_dir,
+            creationflags=getattr(_sp, "CREATE_NO_WINDOW", 0)
+        )
+
+        return jsonify({
+            "ok": True,
+            "killed_processes": killed,
+            "real_balance": real_balance,
+            "starting_balance": starting_balance,
+            "peak_balance": new_peak,
+            "total_dd_now": 0.0,
+            "risk_pct": float(os.getenv("PROP_BASE_RISK", 0.5)),
+            "msg": "Bot reiniciado con DD=0% y risk restaurado"
+        })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
 
